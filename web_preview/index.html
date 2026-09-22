@@ -332,6 +332,30 @@
       cursor: pointer;
     }
 
+    .scan-full-btn {
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 13px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 13px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,56,147,0.25);
+      letter-spacing: 0.3px;
+      transition: all 0.2s ease;
+      margin-bottom: 2px;
+    }
+
+    .scan-full-btn:active {
+      transform: scale(0.98);
+      background: var(--primary-dark);
+    }
+
     .scan-btn:active {
       opacity: 0.9;
     }
@@ -567,7 +591,7 @@
         ITALIKA
       </div>
       <div style="display: flex; align-items: center; gap: 8px;">
-        <a href="/vacaciones.html" style="color: white; text-decoration: none; font-size: 11px; background: rgba(255,255,255,0.25); padding: 5px 9px; border-radius: 14px; font-weight: 700;">
+        <a href="vacaciones.html" style="color: white; text-decoration: none; font-size: 11px; background: rgba(255,255,255,0.25); padding: 5px 9px; border-radius: 14px; font-weight: 700;">
           📊 Vacaciones Excel
         </a>
         <span class="header-badge">Estructuras</span>
@@ -618,6 +642,18 @@
 
         <div class="form-section-title">Datos de la Unidad</div>
         <div class="unit-card">
+          <!-- Botón Principal: Escaneo completo de Económico + Placa -->
+          <button class="scan-full-btn" onclick="startScanner('both', 'Unidad (Económico + Placa)')">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+              <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+              <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+              <path d="M3 17v2a2 2 0 0 1 2 2h2"></path>
+              <line x1="7" y1="12" x2="17" y2="12"></line>
+            </svg>
+            📷 ESCANEAR CÓDIGO (ECONÓMICO + PLACA)
+          </button>
+
           <!-- Económico -->
           <div class="input-group">
             <label class="input-label">Económico de la Unidad</label>
@@ -952,18 +988,27 @@
       let detectedPlaca = null;
 
       // Buscar si el código contiene 'Economico: XXXX' o 'Economico:XXXX'
-      const econMatch = text.match(/econ[oó]mico\s*:\s*([^\r\n\s]+)/i);
+      const econMatch = text.match(/econ[oó]mico\s*:\s*([^\r\n\s,;]+)/i);
       if (econMatch) {
         detectedEcon = econMatch[1].trim();
       }
 
       // Buscar si el código contiene 'Placa:XXXX' o 'Placa: XXXX'
-      const placaMatch = text.match(/placa\s*:\s*([^\r\n\s]+)/i);
+      const placaMatch = text.match(/placa\s*:\s*([^\r\n\s,;]+)/i);
       if (placaMatch) {
         detectedPlaca = placaMatch[1].trim();
       }
 
-      // Si detectó ambos o al menos uno con prefijo:
+      // Si no trae prefijos explícitos, verificar si vienen ambos separados por guión, diagonal, espacio o barra (ej. 3114-A726AF o 3114 / A726AF)
+      if (!detectedEcon && !detectedPlaca) {
+        const parts = text.split(/[\/\-_,\s|]+/);
+        if (parts.length >= 2 && /^\d{3,6}$/.test(parts[0])) {
+          detectedEcon = parts[0];
+          detectedPlaca = parts.slice(1).join('-');
+        }
+      }
+
+      // Si detectó ambos o al menos uno:
       if (detectedEcon || detectedPlaca) {
         let mensajes = [];
         if (detectedEcon) {
@@ -974,7 +1019,7 @@
           document.getElementById('inputPlaca').value = detectedPlaca;
           mensajes.push(`Placa: ${detectedPlaca}`);
         }
-        showToast('✓ Escaneado: ' + mensajes.join(' | '));
+        showToast('✓ ' + mensajes.join(' | '));
         stopScanner();
         return;
       }

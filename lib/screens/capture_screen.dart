@@ -77,11 +77,18 @@ class _CaptureScreenState extends State<CaptureScreen> {
             _placaController.text = placaMatch.group(1)!;
           }
         } else {
-          // Si es plano, limpiar prefijos si los tuviera
-          final cleaned = text
-              .replaceAll(RegExp(r'^econ[oó]mico\s*:\s*', caseSensitive: false), '')
-              .replaceAll(RegExp(r'^placa\s*:\s*', caseSensitive: false), '');
-          controller.text = cleaned;
+          // Si no tiene prefijo, comprobar si vienen dos partes separadas (ej. 3114-A726AF o 3114 / A726AF)
+          final parts = text.split(RegExp(r'[\/\-_,\s|]+'));
+          if (parts.length >= 2 && RegExp(r'^\d{3,6}$').hasMatch(parts[0])) {
+            _economicoController.text = parts[0];
+            _placaController.text = parts.sublist(1).join('-');
+          } else {
+            // Si es plano individual, limpiar prefijos
+            final cleaned = text
+                .replaceAll(RegExp(r'^econ[oó]mico\s*:\s*', caseSensitive: false), '')
+                .replaceAll(RegExp(r'^placa\s*:\s*', caseSensitive: false), '');
+            controller.text = cleaned;
+          }
         }
       });
 
@@ -264,6 +271,31 @@ class _CaptureScreenState extends State<CaptureScreen> {
                               ),
                             ],
                           ),
+                          const SizedBox(height: 14),
+
+                          // Botón Principal: Escaneo completo de Económico + Placa
+                          FilledButton.icon(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: const Color(0xFF003893),
+                              minimumSize: const Size.fromHeight(48),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            icon: const Icon(Icons.qr_code_scanner, size: 20),
+                            label: const Text(
+                              'ESCANEAR CÓDIGO (ECONÓMICO + PLACA)',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                            onPressed: () => _scanBarcode(
+                              title: 'Económico y Placa',
+                              controller: _economicoController,
+                            ),
+                          ),
+
                           const SizedBox(height: 14),
 
                           // Campo: Número Económico con botón de escaneo
