@@ -782,16 +782,17 @@
           Apuntando cámara al código de barras Code-128...
         </div>
 
-        <!-- Botones de prueba directa del código de la imagen -->
+        <!-- Opciones de escaneo y prueba directa -->
         <div class="quick-barcodes">
+          <label class="demo-barcode-btn" style="border-color: #3B82F6; color: #93C5FD; background: #1E3A8A; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-weight: 800;">
+            📷 Tomar Foto HD
+            <input type="file" accept="image/*" capture="environment" style="display: none;" onchange="handleScanFromFile(this)">
+          </label>
           <button class="demo-barcode-btn" style="border-color: #22c55e; color: #22c55e;" onclick="processScannedBarcode('Economico: 3114\nPlaca:A726AF')">
             ⚡ Probar '3114' + 'A726AF'
           </button>
           <button class="demo-barcode-btn" onclick="processScannedBarcode('Economico: 3114')">
-            'Economico: 3114'
-          </button>
-          <button class="demo-barcode-btn" onclick="processScannedBarcode('Placa:A726AF')">
-            'Placa:A726AF'
+            '3114'
           </button>
         </div>
       </div>
@@ -1029,9 +1030,40 @@
       currentTargetInputId = targetInputId;
       document.getElementById('scannerTargetTitle').textContent = 'Escanear ' + title;
       document.getElementById('modalScanner').classList.add('active');
-      document.getElementById('scannerStatusText').textContent = 'Iniciando cámara... Enfoca el código';
+      document.getElementById('scannerStatusText').textContent = 'Iniciando cámara HD... Enfoca el código';
 
       isScanningActive = true;
+
+      // 1. Motor Nativo Hardware BarcodeDetector (ultra rápido en Android/iPhone)
+      let nativeDetector = null;
+      if ('BarcodeDetector' in window) {
+        try {
+          nativeDetector = new BarcodeDetector({
+            formats: ['code_128', 'code_39', 'qr_code', 'ean_13', 'itf']
+          });
+        } catch (e) {
+          console.warn('BarcodeDetector no soportado, usando ZXing:', e);
+        }
+      }
+
+      // Loop de escaneo continuo con BarcodeDetector
+      const runNativeScan = async () => {
+        if (!isScanningActive || !nativeDetector) return;
+        const video = document.getElementById('cameraFeed');
+        if (video && video.readyState >= 2) {
+          try {
+            const barcodes = await nativeDetector.detect(video);
+            if (barcodes.length > 0 && isScanningActive) {
+              isScanningActive = false;
+              processScannedBarcode(barcodes[0].rawValue);
+              return;
+            }
+          } catch (err) {}
+        }
+        if (isScanningActive) {
+          requestAnimationFrame(runNativeScan);
+        }
+      };
 
       try {
         if (!window.ZXing) {
@@ -1039,10 +1071,19 @@
           return;
         }
 
-        codeReader = new ZXing.BrowserMultiFormatReader();
+        // Configuración de máxima sensibilidad para Code-128
+        const hints = new Map();
+        hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+          ZXing.BarcodeFormat.CODE_128,
+          ZXing.BarcodeFormat.CODE_39,
+          ZXing.BarcodeFormat.EAN_13,
+          ZXing.BarcodeFormat.QR_CODE
+        ]);
+        hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+
+        codeReader = new ZXing.BrowserMultiFormatReader(hints);
         const videoInputDevices = await codeReader.listVideoInputDevices();
 
-        // Elegir cámara trasera si existe
         let selectedDeviceId = undefined;
         if (videoInputDevices.length > 0) {
           const backCam = videoInputDevices.find(device => 
@@ -1053,18 +1094,66 @@
           selectedDeviceId = backCam ? backCam.deviceId : videoInputDevices[videoInputDevices.length - 1].deviceId;
         }
 
-        document.getElementById('scannerStatusText').textContent = 'Alinea el código de barras dentro del recuadro verde';
+        document.getElementById('scannerStatusText').textContent = 'Alinea las barras dentro del recuadro verde';
 
-        codeReader.decodeFromVideoDevice(selectedDeviceId, 'cameraFeed', (result, err) => {
+        // Iniciar cámara con ZXing
+        await codeReader.decodeFromVideoDevice(selectedDeviceId, 'cameraFeed', (result, err) => {
           if (result && isScanningActive) {
             isScanningActive = false;
             processScannedBarcode(result.getText());
           }
         });
+
+        // Si hay soporte nativo, ejecutarlo en paralelo para máxima velocidad
+        if (nativeDetector) {
+          requestAnimationFrame(runNativeScan);
+        }
+
       } catch (err) {
         console.error('Error al iniciar escáner:', err);
-        document.getElementById('scannerStatusText').textContent = 'No se pudo acceder a la cámara. Puedes usar los botones rápidos.';
+        document.getElementById('scannerStatusText').textContent = 'Cámara no accesible. Puedes usar el botón "Tomar Foto HD" o botones rápidos.';
       }
+    }
+
+    // Decodificar imagen o foto capturada con la cámara del celular
+    function handleScanFromFile(input) {
+      if (!input.files || input.files.length === 0) return;
+      const file = input.files[0];
+      const imgUrl = URL.createObjectURL(file);
+      const img = new Image();
+
+      document.getElementById('scannerStatusText').textContent = 'Analizando foto en alta resolución...';
+
+      img.onload = async () => {
+        // Intento 1: BarcodeDetector nativo
+        if ('BarcodeDetector' in window) {
+          try {
+            const detector = new BarcodeDetector({ formats: ['code_128', 'code_39', 'qr_code', 'ean_13'] });
+            const barcodes = await detector.detect(img);
+            if (barcodes.length > 0) {
+              processScannedBarcode(barcodes[0].rawValue);
+              return;
+            }
+          } catch (e) {}
+        }
+
+        // Intento 2: ZXing Reader con TRY_HARDER
+        try {
+          const hints = new Map();
+          hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.CODE_39, ZXing.BarcodeFormat.QR_CODE]);
+          hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+          const reader = new ZXing.BrowserMultiFormatReader(hints);
+          const res = await reader.decodeFromImageElement(img);
+          if (res) {
+            processScannedBarcode(res.getText());
+            return;
+          }
+        } catch (e) {
+          alert('No se pudo decodificar el código de la foto. Asegúrate de enfocar con buena luz.');
+          document.getElementById('scannerStatusText').textContent = 'Reintentando escaneo en vivo...';
+        }
+      };
+      img.src = imgUrl;
     }
 
     function stopScanner() {
