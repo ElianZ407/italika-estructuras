@@ -7,7 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <!-- Librería ZXing para escaneo real de Code-128, QR, Code-39 desde la cámara del celular -->
+  <!-- Librería Html5Qrcode con soporte de aceleración por hardware BarcodeDetector y ZXing optimizado -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <!-- Librería ZXing para fallback de escaneo -->
   <script src="https://unpkg.com/@zxing/library@0.23.0/umd/index.min.js"></script>
   <style>
     :root {
@@ -494,6 +496,29 @@
       object-fit: cover;
     }
 
+    #reader {
+      width: 100% !important;
+      height: 100% !important;
+      position: absolute;
+      top: 0;
+      left: 0;
+      border: none !important;
+    }
+
+    #reader video {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover !important;
+    }
+
+    #reader__scan_region {
+      background: transparent !important;
+    }
+
+    #reader__dashboard_section {
+      display: none !important;
+    }
+
     .scanner-reticle {
       position: absolute;
       width: 280px;
@@ -763,15 +788,16 @@
       </div>
     </div>
 
-    <!-- MODAL ESCÁNER REAL CON CÁMARA (ZXing Code-128) -->
+    <!-- MODAL ESCÁNER INTELIGENTE CON CÁMARA (Code-128 / QR / BarcodeDetector) -->
     <div id="modalScanner" class="modal-overlay">
       <div class="modal-header">
-        <span id="scannerTargetTitle" style="font-weight: 700; font-size: 15px;">Escanear Código</span>
+        <span id="scannerTargetTitle" style="font-weight: 700; font-size: 15px;">Escanear Código de Barras / QR</span>
         <button onclick="stopScanner()" style="background: none; border: none; color: white; font-size: 24px; font-weight: bold; cursor: pointer; padding: 4px 10px;">✕</button>
       </div>
 
       <div class="scanner-view">
-        <video id="cameraFeed" playsinline autoplay muted></video>
+        <div id="reader"></div>
+        <video id="cameraFeed" playsinline autoplay muted style="display: none;"></video>
         <div class="scanner-reticle">
           <div class="scanner-laser"></div>
         </div>
@@ -779,7 +805,7 @@
 
       <div class="scanner-controls">
         <div id="scannerStatusText" class="scanner-status">
-          Apuntando cámara al código de barras Code-128...
+          Enfoca el código de barras o QR dentro del recuadro...
         </div>
 
         <!-- Opciones de escaneo y prueba directa -->
@@ -788,11 +814,11 @@
             📷 Tomar Foto HD
             <input type="file" accept="image/*" capture="environment" style="display: none;" onchange="handleScanFromFile(this)">
           </label>
-          <button class="demo-barcode-btn" style="border-color: #22c55e; color: #22c55e;" onclick="processScannedBarcode('Economico: 3114\nPlaca:A726AF')">
-            ⚡ Probar '3114' + 'A726AF'
+          <button class="demo-barcode-btn" style="border-color: #22c55e; color: #22c55e;" onclick="processScannedBarcode('ECO: 3114 PLACA: A726AF')">
+            ⚡ ECO: 3114 | PLACA: A726AF
           </button>
-          <button class="demo-barcode-btn" onclick="processScannedBarcode('Economico: 3114')">
-            '3114'
+          <button class="demo-barcode-btn" onclick="processScannedBarcode('ECO: 1042 PLACA: LF5589')">
+            ⚡ ECO: 1042 | PLACA: LF5589
           </button>
         </div>
       </div>
@@ -802,6 +828,7 @@
   <script>
     let currentMovimiento = 'Entrada Contenedor';
     let currentTargetInputId = '';
+    let html5Scanner = null;
     let codeReader = null;
     let isScanningActive = false;
 
@@ -967,47 +994,54 @@
     // ESCÁNER DE CÓDIGO DE BARRAS INTELIGENTE
     // ============================================
 
-    // Procesa el texto del código de barras (ej. Code-128 con "Economico: 3114" o "Placa:A726AF")
+    // Procesa el texto del código de barras (ej. Code-128 con "ECO: 3114 PLACA: A726AF" o "Economico: 3114")
     function processScannedBarcode(rawText) {
       if (!rawText) return;
       const text = rawText.trim();
+      console.log('Código detectado:', text);
 
       // Vibración de confirmación si el celular lo soporta
-      if (navigator.vibrate) navigator.vibrate([80, 50, 80]);
+      if (navigator.vibrate) {
+        try { navigator.vibrate([80, 50, 80]); } catch(e) {}
+      }
 
       let detectedEcon = null;
       let detectedPlaca = null;
 
-      // Buscar si el código contiene 'Economico: XXXX' o 'Economico:XXXX'
-      const econMatch = text.match(/econ[oó]mico\s*:\s*([^\r\n\s,;]+)/i);
+      // 1. Regex inteligente para Económico:
+      // Soporta: 'ECO: 3114', 'ECO 3114', 'ECO. 3114', 'ECONOMICO: 3114', 'ECONÓMICO: 3114', 'UNIDAD: 3114'
+      const econMatch = text.match(/(?:eco(?:n[oó]mico)?|unidad)\s*[:.\-=\s]\s*([A-Za-z0-9]+)/i);
       if (econMatch) {
         detectedEcon = econMatch[1].trim();
       }
 
-      // Buscar si el código contiene 'Placa:XXXX' o 'Placa: XXXX'
-      const placaMatch = text.match(/placa\s*:\s*([^\r\n\s,;]+)/i);
+      // 2. Regex inteligente para Placa:
+      // Soporta: 'PLACA: A726AF', 'PLACAS: A726AF', 'PLACA A726AF', 'PLACA=A726AF'
+      const placaMatch = text.match(/placas?\s*[:.\-=\s]\s*([A-Za-z0-9]+)/i);
       if (placaMatch) {
         detectedPlaca = placaMatch[1].trim();
       }
 
-      // Si no trae prefijos explícitos, verificar si vienen ambos separados por guión, diagonal, espacio o barra (ej. 3114-A726AF o 3114 / A726AF)
+      // 3. Si no trae prefijos explícitos (ej. '3114-A726AF' o '3114 / A726AF' o '3114 A726AF')
       if (!detectedEcon && !detectedPlaca) {
         const parts = text.split(/[\/\-_,\s|]+/);
-        if (parts.length >= 2 && /^\d{3,6}$/.test(parts[0])) {
+        if (parts.length >= 2) {
           detectedEcon = parts[0];
           detectedPlaca = parts.slice(1).join('-');
         }
       }
 
-      // Si detectó ambos o al menos uno:
+      // 4. Si se encontró Económico o Placa, llenar los campos correspondientes
       if (detectedEcon || detectedPlaca) {
         let mensajes = [];
         if (detectedEcon) {
-          document.getElementById('inputEconomico').value = detectedEcon;
+          const inputE = document.getElementById('inputEconomico');
+          if (inputE) inputE.value = detectedEcon;
           mensajes.push(`Económico: ${detectedEcon}`);
         }
         if (detectedPlaca) {
-          document.getElementById('inputPlaca').value = detectedPlaca;
+          const inputP = document.getElementById('inputPlaca');
+          if (inputP) inputP.value = detectedPlaca;
           mensajes.push(`Placa: ${detectedPlaca}`);
         }
         showToast('✓ ' + mensajes.join(' | '));
@@ -1015,12 +1049,23 @@
         return;
       }
 
-      // Si es un código plano sin prefijo (ej. sólo '3114' o 'A726AF')
-      if (currentTargetInputId) {
-        // Limpiar si traía texto 'Economico:' residual
-        const cleaned = text.replace(/^econ[oó]mico\s*:\s*/i, '').replace(/^placa\s*:\s*/i, '');
-        document.getElementById(currentTargetInputId).value = cleaned;
+      // 5. Si es un valor único plano (ej. sólo '3114' o 'A726AF')
+      if (currentTargetInputId && currentTargetInputId !== 'both') {
+        const cleaned = text.replace(/^(?:eco(?:n[oó]mico)?|placas?|unidad)\s*[:.\-=\s]*/i, '');
+        const target = document.getElementById(currentTargetInputId);
+        if (target) target.value = cleaned;
         showToast('✓ Código capturado: ' + cleaned);
+      } else {
+        // Modo 'both': asignar a Económico si es numérico, sino a Placa
+        if (/^\d+$/.test(text)) {
+          const inputE = document.getElementById('inputEconomico');
+          if (inputE) inputE.value = text;
+          showToast('✓ Asignado a Económico: ' + text);
+        } else {
+          const inputP = document.getElementById('inputPlaca');
+          if (inputP) inputP.value = text;
+          showToast('✓ Asignado a Placa: ' + text);
+        }
       }
 
       stopScanner();
@@ -1034,44 +1079,104 @@
 
       isScanningActive = true;
 
-      // 1. Motor Nativo Hardware BarcodeDetector (ultra rápido en Android/iPhone)
-      let nativeDetector = null;
-      if ('BarcodeDetector' in window) {
+      // 1. Intentar con Html5Qrcode (alta resolución + region de interés para Code-128)
+      if (window.Html5Qrcode) {
         try {
-          nativeDetector = new BarcodeDetector({
-            formats: ['code_128', 'code_39', 'qr_code', 'ean_13', 'itf']
-          });
-        } catch (e) {
-          console.warn('BarcodeDetector no soportado, usando ZXing:', e);
+          if (!html5Scanner) {
+            html5Scanner = new Html5Qrcode("reader");
+          }
+
+          // Si ya estuviera corriendo, detenerlo
+          try {
+            if (html5Scanner.getState() === 2) {
+              await html5Scanner.stop();
+            }
+          } catch (e) {}
+
+          const formats = [
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.QR_CODE,
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.ITF
+          ];
+
+          const qrBoxFunction = (viewfinderWidth, viewfinderHeight) => {
+            const width = Math.min(Math.floor(viewfinderWidth * 0.9), 350);
+            const height = Math.min(Math.floor(viewfinderHeight * 0.35), 150);
+            return { width: Math.max(width, 260), height: Math.max(height, 100) };
+          };
+
+          const config = {
+            fps: 25,
+            qrbox: qrBoxFunction,
+            formatsToSupport: formats,
+            experimentalFeatures: {
+              useBarCodeDetectorIfSupported: true
+            },
+            videoConstraints: {
+              facingMode: "environment",
+              width: { ideal: 1920, min: 1280 },
+              height: { ideal: 1080, min: 720 }
+            }
+          };
+
+          await html5Scanner.start(
+            { facingMode: "environment" },
+            config,
+            (decodedText) => {
+              if (isScanningActive) {
+                isScanningActive = false;
+                processScannedBarcode(decodedText);
+              }
+            },
+            (error) => {}
+          );
+
+          document.getElementById('scannerStatusText').textContent = 'Alinea el código dentro del recuadro verde';
+          return;
+        } catch (err) {
+          console.warn('Html5Qrcode fallo o permiso pendiente, intentando fallback ZXing:', err);
         }
       }
 
-      // Loop de escaneo continuo con BarcodeDetector
-      const runNativeScan = async () => {
-        if (!isScanningActive || !nativeDetector) return;
-        const video = document.getElementById('cameraFeed');
-        if (video && video.readyState >= 2) {
-          try {
-            const barcodes = await nativeDetector.detect(video);
-            if (barcodes.length > 0 && isScanningActive) {
-              isScanningActive = false;
-              processScannedBarcode(barcodes[0].rawValue);
-              return;
-            }
-          } catch (err) {}
-        }
-        if (isScanningActive) {
-          requestAnimationFrame(runNativeScan);
-        }
-      };
-
+      // 2. Motor secundario ZXing + BarcodeDetector nativo
       try {
+        const videoElem = document.getElementById('cameraFeed');
+        if (videoElem) videoElem.style.display = 'block';
+
+        let nativeDetector = null;
+        if ('BarcodeDetector' in window) {
+          try {
+            nativeDetector = new BarcodeDetector({
+              formats: ['code_128', 'code_39', 'qr_code', 'ean_13', 'itf']
+            });
+          } catch (e) {}
+        }
+
+        const runNativeScan = async () => {
+          if (!isScanningActive || !nativeDetector) return;
+          const video = document.getElementById('cameraFeed');
+          if (video && video.readyState >= 2) {
+            try {
+              const barcodes = await nativeDetector.detect(video);
+              if (barcodes.length > 0 && isScanningActive) {
+                isScanningActive = false;
+                processScannedBarcode(barcodes[0].rawValue);
+                return;
+              }
+            } catch (err) {}
+          }
+          if (isScanningActive) {
+            requestAnimationFrame(runNativeScan);
+          }
+        };
+
         if (!window.ZXing) {
-          document.getElementById('scannerStatusText').textContent = 'Enfoca el código o usa los botones rápidos';
+          document.getElementById('scannerStatusText').textContent = 'Usa "Tomar Foto HD" o botones rápidos';
           return;
         }
 
-        // Configuración de máxima sensibilidad para Code-128
         const hints = new Map();
         hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
           ZXing.BarcodeFormat.CODE_128,
@@ -1096,7 +1201,6 @@
 
         document.getElementById('scannerStatusText').textContent = 'Alinea las barras dentro del recuadro verde';
 
-        // Iniciar cámara con ZXing
         await codeReader.decodeFromVideoDevice(selectedDeviceId, 'cameraFeed', (result, err) => {
           if (result && isScanningActive) {
             isScanningActive = false;
@@ -1104,28 +1208,47 @@
           }
         });
 
-        // Si hay soporte nativo, ejecutarlo en paralelo para máxima velocidad
         if (nativeDetector) {
           requestAnimationFrame(runNativeScan);
         }
-
       } catch (err) {
-        console.error('Error al iniciar escáner:', err);
-        document.getElementById('scannerStatusText').textContent = 'Cámara no accesible. Puedes usar el botón "Tomar Foto HD" o botones rápidos.';
+        console.error('Error al iniciar escáner secundario:', err);
+        document.getElementById('scannerStatusText').textContent = 'Cámara no accesible. Usa "Tomar Foto HD" o botones rápidos.';
       }
     }
 
-    // Decodificar imagen o foto capturada con la cámara del celular
-    function handleScanFromFile(input) {
+    // Decodificar imagen o foto capturada con la cámara del celular (12MP alta definición)
+    async function handleScanFromFile(input) {
       if (!input.files || input.files.length === 0) return;
       const file = input.files[0];
-      const imgUrl = URL.createObjectURL(file);
-      const img = new Image();
-
       document.getElementById('scannerStatusText').textContent = 'Analizando foto en alta resolución...';
 
+      // 1. Intentar con Html5Qrcode.scanFile
+      if (window.Html5Qrcode) {
+        try {
+          if (!html5Scanner) {
+            html5Scanner = new Html5Qrcode("reader");
+          }
+          try {
+            if (html5Scanner.getState() === 2) {
+              await html5Scanner.stop();
+            }
+          } catch(e) {}
+
+          const decodedText = await html5Scanner.scanFile(file, false);
+          if (decodedText) {
+            processScannedBarcode(decodedText);
+            return;
+          }
+        } catch (e) {
+          console.warn('Html5Qrcode scanFile falló, probando con detector nativo/ZXing:', e);
+        }
+      }
+
+      // 2. BarcodeDetector nativo por hardware
+      const img = new Image();
+      const imgUrl = URL.createObjectURL(file);
       img.onload = async () => {
-        // Intento 1: BarcodeDetector nativo
         if ('BarcodeDetector' in window) {
           try {
             const detector = new BarcodeDetector({ formats: ['code_128', 'code_39', 'qr_code', 'ean_13'] });
@@ -1137,38 +1260,55 @@
           } catch (e) {}
         }
 
-        // Intento 2: ZXing Reader con TRY_HARDER
-        try {
-          const hints = new Map();
-          hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.CODE_39, ZXing.BarcodeFormat.QR_CODE]);
-          hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-          const reader = new ZXing.BrowserMultiFormatReader(hints);
-          const res = await reader.decodeFromImageElement(img);
-          if (res) {
-            processScannedBarcode(res.getText());
-            return;
-          }
-        } catch (e) {
-          alert('No se pudo decodificar el código de la foto. Asegúrate de enfocar con buena luz.');
-          document.getElementById('scannerStatusText').textContent = 'Reintentando escaneo en vivo...';
+        // 3. Fallback ZXing Reader con TRY_HARDER
+        if (window.ZXing) {
+          try {
+            const hints = new Map();
+            hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.CODE_39, ZXing.BarcodeFormat.QR_CODE]);
+            hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+            const reader = new ZXing.BrowserMultiFormatReader(hints);
+            const res = await reader.decodeFromImageElement(img);
+            if (res) {
+              processScannedBarcode(res.getText());
+              return;
+            }
+          } catch (e) {}
         }
+
+        alert('No se detectó el código en la foto. Consejo: Acerca más la cámara a la pantalla o amplía el código con Ctrl + Zoom.');
+        document.getElementById('scannerStatusText').textContent = 'Alinea el código dentro del recuadro';
       };
       img.src = imgUrl;
     }
 
-    function stopScanner() {
+    async function stopScanner() {
       isScanningActive = false;
       document.getElementById('modalScanner').classList.remove('active');
+
+      if (html5Scanner) {
+        try {
+          if (html5Scanner.getState() === 2) {
+            await html5Scanner.stop();
+          }
+        } catch (e) {
+          console.warn('Error deteniendo html5Scanner:', e);
+        }
+      }
+
       if (codeReader) {
         try {
           codeReader.reset();
         } catch (e) {}
         codeReader = null;
       }
+
       const video = document.getElementById('cameraFeed');
-      if (video && video.srcObject) {
-        video.srcObject.getTracks().forEach(t => t.stop());
-        video.srcObject = null;
+      if (video) {
+        video.style.display = 'none';
+        if (video.srcObject) {
+          video.srcObject.getTracks().forEach(t => t.stop());
+          video.srcObject = null;
+        }
       }
     }
 
