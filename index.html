@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ITALIKA • Validación de Estructuras</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Librería ZXing para escaneo real de Code-128, QR, Code-39 desde la cámara del celular -->
+  <script src="https://unpkg.com/@zxing/library@0.23.0/umd/index.min.js"></script>
+  <style>
+    :root {
+      --primary: #003893;
+      --primary-dark: #002561;
+      --accent: #E50914;
+      --bg: #F3F4F6;
+      --card-bg: #FFFFFF;
+      --text-dark: #111827;
+      --text-muted: #6B7280;
+      --border: #E5E7EB;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: #121212;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      color: var(--text-dark);
+    }
+
+    .mobile-frame {
+      width: 100%;
+      max-width: 440px;
+      height: 96vh;
+      max-height: 900px;
+      background: var(--bg);
+      border-radius: 36px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.6), 0 0 0 10px #2a2a2a;
+      position: relative;
+    }
+
+    @media (max-width: 500px) {
+      body { background: var(--bg); }
+      .mobile-frame {
+        max-width: 100%;
+        height: 100vh;
+        max-height: 100vh;
+        border-radius: 0;
+        box-shadow: none;
+      }
+    }
+
+    .app-header {
+      background: var(--primary);
+      color: white;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .header-title {
+      font-size: 18px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      letter-spacing: 0.5px;
+    }
+
+    .header-badge {
+      background: rgba(255,255,255,0.2);
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      font-weight: 700;
+    }
+
+    .screen {
+      flex: 1;
+      overflow-y: auto;
+      display: none;
+      flex-direction: column;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    .metrics-bar {
+      background: var(--primary);
+      color: white;
+      padding: 0 20px 18px 20px;
+      display: flex;
+      justify-content: space-around;
+      border-radius: 0 0 20px 20px;
+      box-shadow: 0 4px 12px rgba(0,56,147,0.2);
+    }
+
+    .metric-item { text-align: center; }
+    .metric-val { font-size: 22px; font-weight: 900; }
+    .metric-lbl { font-size: 11px; opacity: 0.85; }
+    .metrics-divider { width: 1px; background: rgba(255,255,255,0.25); }
+
+    .records-container {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding-bottom: 90px;
+    }
+
+    .record-card {
+      background: white;
+      border-radius: 14px;
+      padding: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      border: 1px solid var(--border);
+    }
+
+    .record-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .record-folio {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--text-dark);
+    }
+
+    .badge-mov {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 20px;
+    }
+
+    .mov-entrada { background: #DCFCE7; color: #15803D; }
+    .mov-salida { background: #DBEAFE; color: #1D4ED8; }
+    .mov-retorno { background: #FFEDD5; color: #C2410C; }
+
+    .record-date {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .record-chips {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .chip-info {
+      background: #F3F4F6;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: var(--text-dark);
+    }
+
+    .chip-info strong {
+      color: var(--primary);
+    }
+
+    .structures-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .pill-st {
+      background: #EFF6FF;
+      color: var(--primary);
+      border: 1px solid #BFDBFE;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+
+    .record-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--border);
+      padding-top: 8px;
+    }
+
+    .total-highlight {
+      font-size: 15px;
+      font-weight: 900;
+      color: var(--primary);
+    }
+
+    .fab-btn {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 30px;
+      padding: 14px 28px;
+      font-size: 14px;
+      font-weight: 800;
+      box-shadow: 0 10px 25px rgba(229, 9, 20, 0.4);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 10;
+    }
+
+    .fab-btn:active {
+      transform: translateX(-50%) scale(0.96);
+    }
+
+    .form-container {
+      padding: 16px;
+      padding-bottom: 110px;
+    }
+
+    .form-section-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--text-dark);
+      margin: 14px 0 8px 0;
+    }
+
+    .segmented-control {
+      display: flex;
+      background: #E5E7EB;
+      border-radius: 12px;
+      padding: 3px;
+      gap: 3px;
+    }
+
+    .segment-btn {
+      flex: 1;
+      padding: 8px 4px;
+      font-size: 12px;
+      font-weight: 700;
+      border: none;
+      background: transparent;
+      border-radius: 10px;
+      cursor: pointer;
+      color: var(--text-muted);
+    }
+
+    .segment-btn.active {
+      background: white;
+      color: var(--primary);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    .unit-card {
+      background: white;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      padding: 14px;
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .input-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-dark);
+    }
+
+    .input-with-scan {
+      display: flex;
+      gap: 8px;
+    }
+
+    .text-input {
+      flex: 1;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      font-size: 14px;
+      background: #FAFAFA;
+      font-weight: 600;
+    }
+
+    .text-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: white;
+    }
+
+    .scan-btn {
+      background: #003893;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 0 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .scan-btn:active {
+      opacity: 0.9;
+    }
+
+    .counter-card {
+      background: white;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      padding: 12px 14px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .counter-card.has-value {
+      border: 2px solid var(--primary);
+    }
+
+    .st-info { display: flex; flex-direction: column; }
+    .st-name { font-size: 14px; font-weight: 800; color: var(--text-dark); }
+    .st-sub { font-size: 11px; color: var(--text-muted); }
+
+    .counter-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-step {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      border: none;
+      background: #F3F4F6;
+      color: #111827;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-step.add {
+      background: var(--primary);
+      color: white;
+    }
+
+    .btn-step.jump {
+      width: 38px;
+      background: white;
+      border: 1px solid #D1D5DB;
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .counter-value {
+      min-width: 38px;
+      text-align: center;
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--primary);
+    }
+
+    .bottom-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      border-top: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 -4px 16px rgba(0,0,0,0.06);
+      z-index: 10;
+    }
+
+    .bottom-total-lbl { font-size: 11px; font-weight: 700; color: var(--text-muted); }
+    .bottom-total-val { font-size: 24px; font-weight: 900; color: var(--primary); }
+
+    .btn-save {
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 22px;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    /* Modal Escaner con Camara */
+    .modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #000;
+      display: none;
+      flex-direction: column;
+      z-index: 999;
+      color: white;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-header {
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0,0,0,0.9);
+      z-index: 2;
+    }
+
+    .scanner-view {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: #000;
+    }
+
+    #cameraFeed {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .scanner-reticle {
+      position: absolute;
+      width: 280px;
+      height: 160px;
+      border: 3px solid #22c55e;
+      border-radius: 16px;
+      box-shadow: 0 0 0 3000px rgba(0,0,0,0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .scanner-laser {
+      width: 90%;
+      height: 2px;
+      background: #22c55e;
+      animation: scanLaser 1.8s infinite alternate ease-in-out;
+      box-shadow: 0 0 12px #22c55e;
+    }
+
+    @keyframes scanLaser {
+      0% { transform: translateY(-60px); }
+      100% { transform: translateY(60px); }
+    }
+
+    .scanner-controls {
+      padding: 14px 16px;
+      background: #111;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 2;
+    }
+
+    .scanner-status {
+      font-size: 13px;
+      text-align: center;
+      color: #9CA3AF;
+      font-weight: 500;
+    }
+
+    .quick-barcodes {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .demo-barcode-btn {
+      background: #262626;
+      color: #E5E7EB;
+      border: 1px solid #404040;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* Toast alerta */
+    .toast {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1F2937;
+      color: white;
+      padding: 10px 18px;
+      border-radius: 24px;
+      font-size: 13px;
+      font-weight: 700;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      z-index: 9999;
+      display: none;
+      border: 1px solid #374151;
+      text-align: center;
+      max-width: 90%;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="mobile-frame">
+    <div id="appToast" class="toast"></div>
+
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-title">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+          <line x1="12" y1="22.08" x2="12" y2="12"></line>
+        </svg>
+        ITALIKA
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <a href="vacaciones.html" style="color: white; text-decoration: none; font-size: 11px; background: rgba(255,255,255,0.25); padding: 5px 9px; border-radius: 14px; font-weight: 700;">
+          📊 Vacaciones Excel
+        </a>
+        <span class="header-badge">Estructuras</span>
+      </div>
+    </header>
+
+    <!-- PANTALLA 1: HISTORIAL -->
+    <div id="screenHome" class="screen active">
+      <div class="metrics-bar">
+        <div class="metric-item">
+          <div id="metricValesCount" class="metric-val">0</div>
+          <div class="metric-lbl">Vales Guardados</div>
+        </div>
+        <div class="metrics-divider"></div>
+        <div class="metric-item">
+          <div id="metricTotalEstructuras" class="metric-val">0</div>
+          <div class="metric-lbl">Total Estructuras</div>
+        </div>
+      </div>
+
+      <div id="recordsList" class="records-container"></div>
+
+      <button class="fab-btn" onclick="openCaptureScreen()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        NUEVO REGISTRO
+      </button>
+    </div>
+
+    <!-- PANTALLA 2: CAPTURA -->
+    <div id="screenCapture" class="screen">
+      <div class="form-container">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <button onclick="closeCaptureScreen()" style="background: none; border: none; font-size: 14px; font-weight: 700; color: var(--primary); cursor: pointer;">
+            ← Volver
+          </button>
+          <span style="font-size: 13px; font-weight: 700; color: var(--text-muted);" id="currentFolio">VAL-260922-1045</span>
+        </div>
+
+        <div class="form-section-title">Tipo de Movimiento</div>
+        <div class="segmented-control">
+          <button class="segment-btn active" onclick="setMovimiento('Entrada Contenedor', this)">Entrada Cont.</button>
+          <button class="segment-btn" onclick="setMovimiento('Salida', this)">Salida</button>
+          <button class="segment-btn" onclick="setMovimiento('Retorno a CEDIS', this)">Retorno</button>
+        </div>
+
+        <div class="form-section-title">Datos de la Unidad</div>
+        <div class="unit-card">
+          <!-- Económico -->
+          <div class="input-group">
+            <label class="input-label">Económico de la Unidad</label>
+            <div class="input-with-scan">
+              <input type="text" id="inputEconomico" class="text-input" placeholder="Ej. 3114">
+              <button class="scan-btn" onclick="startScanner('inputEconomico', 'Económico')">
+                📷 Escanear
+              </button>
+            </div>
+          </div>
+
+          <!-- Placa -->
+          <div class="input-group">
+            <label class="input-label">Placa de la Unidad</label>
+            <div class="input-with-scan">
+              <input type="text" id="inputPlaca" class="text-input" placeholder="Ej. A726AF">
+              <button class="scan-btn" onclick="startScanner('inputPlaca', 'Placa')">
+                📷 Escanear
+              </button>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 8px;">
+            <div class="input-group" style="flex: 1;">
+              <label class="input-label"># Carga</label>
+              <input type="text" id="inputCarga" class="text-input" placeholder="0579">
+            </div>
+            <div class="input-group" style="flex: 1;">
+              <label class="input-label">Destino</label>
+              <input type="text" id="inputDestino" class="text-input" placeholder="CEDIS / Tienda">
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label">Operador / Transportista</label>
+            <input type="text" id="inputOperador" class="text-input" placeholder="Nombre del chofer">
+          </div>
+        </div>
+
+        <!-- 5 Contadores -->
+        <div class="form-section-title">Conteo de Estructuras</div>
+
+        <div class="counter-card" id="card_abatibles">
+          <div class="st-info">
+            <span class="st-name">1. Abatibles</span>
+            <span class="st-sub">Abatible Estándar</span>
+          </div>
+          <div class="counter-actions">
+            <button class="btn-step" onclick="updateCount('abatibles', -1)">-</button>
+            <div class="counter-value" id="val_abatibles">0</div>
+            <button class="btn-step add" onclick="updateCount('abatibles', 1)">+</button>
+            <button class="btn-step jump" onclick="updateCount('abatibles', 5)">+5</button>
+          </div>
+        </div>
+
+        <div class="counter-card" id="card_normales">
+          <div class="st-info">
+            <span class="st-name">2. Normales</span>
+            <span class="st-sub">EMP-1870MM Estándar</span>
+          </div>
+          <div class="counter-actions">
+            <button class="btn-step" onclick="updateCount('normales', -1)">-</button>
+            <div class="counter-value" id="val_normales">0</div>
+            <button class="btn-step add" onclick="updateCount('normales', 1)">+</button>
+            <button class="btn-step jump" onclick="updateCount('normales', 5)">+5</button>
+          </div>
+        </div>
+
+        <div class="counter-card" id="card_atvNormal">
+          <div class="st-info">
+            <span class="st-name">3. ATV Normal</span>
+            <span class="st-sub">Cuatrimoto Normal</span>
+          </div>
+          <div class="counter-actions">
+            <button class="btn-step" onclick="updateCount('atvNormal', -1)">-</button>
+            <div class="counter-value" id="val_atvNormal">0</div>
+            <button class="btn-step add" onclick="updateCount('atvNormal', 1)">+</button>
+            <button class="btn-step jump" onclick="updateCount('atvNormal', 5)">+5</button>
+          </div>
+        </div>
+
+        <div class="counter-card" id="card_atvAbatible">
+          <div class="st-info">
+            <span class="st-name">4. ATV Abatible</span>
+            <span class="st-sub">Cuatrimoto Abatible</span>
+          </div>
+          <div class="counter-actions">
+            <button class="btn-step" onclick="updateCount('atvAbatible', -1)">-</button>
+            <div class="counter-value" id="val_atvAbatible">0</div>
+            <button class="btn-step add" onclick="updateCount('atvAbatible', 1)">+</button>
+            <button class="btn-step jump" onclick="updateCount('atvAbatible', 5)">+5</button>
+          </div>
+        </div>
+
+        <div class="counter-card" id="card_cartonMadera">
+          <div class="st-info">
+            <span class="st-name">5. Cartón / Madera</span>
+            <span class="st-sub">Embalaje complementario</span>
+          </div>
+          <div class="counter-actions">
+            <button class="btn-step" onclick="updateCount('cartonMadera', -1)">-</button>
+            <div class="counter-value" id="val_cartonMadera">0</div>
+            <button class="btn-step add" onclick="updateCount('cartonMadera', 1)">+</button>
+            <button class="btn-step jump" onclick="updateCount('cartonMadera', 5)">+5</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-bar">
+        <div>
+          <div class="bottom-total-lbl">TOTAL ESTRUCTURAS</div>
+          <div class="bottom-total-val" id="bottomTotalVal">0</div>
+        </div>
+        <button class="btn-save" onclick="saveCurrentRecord()">
+          ✓ Guardar Registro
+        </button>
+      </div>
+    </div>
+
+    <!-- MODAL ESCÁNER REAL CON CÁMARA (ZXing Code-128) -->
+    <div id="modalScanner" class="modal-overlay">
+      <div class="modal-header">
+        <span id="scannerTargetTitle" style="font-weight: 700; font-size: 15px;">Escanear Código</span>
+        <button onclick="stopScanner()" style="background: none; border: none; color: white; font-size: 24px; font-weight: bold; cursor: pointer; padding: 4px 10px;">✕</button>
+      </div>
+
+      <div class="scanner-view">
+        <video id="cameraFeed" playsinline autoplay muted></video>
+        <div class="scanner-reticle">
+          <div class="scanner-laser"></div>
+        </div>
+      </div>
+
+      <div class="scanner-controls">
+        <div id="scannerStatusText" class="scanner-status">
+          Apuntando cámara al código de barras Code-128...
+        </div>
+
+        <!-- Botones de prueba directa del código de la imagen -->
+        <div class="quick-barcodes">
+          <button class="demo-barcode-btn" style="border-color: #22c55e; color: #22c55e;" onclick="processScannedBarcode('Economico: 3114\nPlaca:A726AF')">
+            ⚡ Probar '3114' + 'A726AF'
+          </button>
+          <button class="demo-barcode-btn" onclick="processScannedBarcode('Economico: 3114')">
+            'Economico: 3114'
+          </button>
+          <button class="demo-barcode-btn" onclick="processScannedBarcode('Placa:A726AF')">
+            'Placa:A726AF'
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentMovimiento = 'Entrada Contenedor';
+    let currentTargetInputId = '';
+    let codeReader = null;
+    let isScanningActive = false;
+
+    const counts = {
+      abatibles: 0,
+      normales: 0,
+      atvNormal: 0,
+      atvAbatible: 0,
+      cartonMadera: 0
+    };
+
+    function showToast(text) {
+      const toast = document.getElementById('appToast');
+      toast.textContent = text;
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 3000);
+    }
+
+    function getStoredRecords() {
+      const data = localStorage.getItem('italika_records');
+      return data ? JSON.parse(data) : [];
+    }
+
+    function saveRecordsToStorage(records) {
+      localStorage.setItem('italika_records', JSON.stringify(records));
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      if (getStoredRecords().length === 0) {
+        saveRecordsToStorage([
+          {
+            id: '1',
+            folio: 'VAL-260921-1159',
+            fechaHora: new Date(Date.now() - 3600000 * 5).toISOString(),
+            tipoMovimiento: 'Entrada Contenedor',
+            economico: '3114',
+            placa: 'A726AF',
+            numeroCarga: '0579',
+            destino: 'Elektra CD Villahermosa',
+            operador: 'Manuel Cruz',
+            abatibles: 18,
+            normales: 12,
+            atvNormal: 4,
+            atvAbatible: 0,
+            cartonMadera: 2,
+            totalEstructuras: 36
+          }
+        ]);
+      }
+      renderRecords();
+    });
+
+    function renderRecords() {
+      const records = getStoredRecords();
+      const listContainer = document.getElementById('recordsList');
+      
+      let totalAll = 0;
+      records.forEach(r => totalAll += (r.totalEstructuras || 0));
+
+      document.getElementById('metricValesCount').textContent = records.length;
+      document.getElementById('metricTotalEstructuras').textContent = totalAll;
+
+      if (records.length === 0) {
+        listContainer.innerHTML = `
+          <div style="text-align: center; padding: 40px 20px; color: #9CA3AF;">
+            <p style="font-weight: 700; font-size: 15px; margin-bottom: 4px;">No hay registros aún</p>
+            <p style="font-size: 13px;">Presiona 'NUEVO REGISTRO' para comenzar.</p>
+          </div>
+        `;
+        return;
+      }
+
+      listContainer.innerHTML = records.map(r => {
+        let badgeClass = 'mov-entrada';
+        if (r.tipoMovimiento === 'Salida') badgeClass = 'mov-salida';
+        if (r.tipoMovimiento === 'Retorno a CEDIS') badgeClass = 'mov-retorno';
+
+        const date = new Date(r.fechaHora);
+        const formattedDate = `${date.toLocaleDateString()} ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+
+        return `
+          <div class="record-card">
+            <div class="record-header">
+              <span class="record-folio">${r.folio}</span>
+              <span class="badge-mov ${badgeClass}">${r.tipoMovimiento}</span>
+            </div>
+            <div class="record-date">${formattedDate}</div>
+            <div class="record-chips">
+              <div class="chip-info">Económico: <strong>${r.economico || 'S/N'}</strong></div>
+              <div class="chip-info">Placa: <strong>${r.placa || 'S/N'}</strong></div>
+            </div>
+            <div class="structures-pills">
+              ${r.abatibles ? `<span class="pill-st">Abatibles: ${r.abatibles}</span>` : ''}
+              ${r.normales ? `<span class="pill-st">Normales: ${r.normales}</span>` : ''}
+              ${r.atvNormal ? `<span class="pill-st">ATV N: ${r.atvNormal}</span>` : ''}
+              ${r.atvAbatible ? `<span class="pill-st">ATV Abat: ${r.atvAbatible}</span>` : ''}
+              ${r.cartonMadera ? `<span class="pill-st">Cart/Mad: ${r.cartonMadera}</span>` : ''}
+            </div>
+            <div class="record-footer">
+              <span style="font-size: 12px; color: #4B5563;">${r.destino || 'Destino no esp.'}</span>
+              <span class="total-highlight">TOTAL: ${r.totalEstructuras}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openCaptureScreen() {
+      const d = new Date();
+      const folioCode = `VAL-${d.getFullYear().toString().substr(-2)}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}-${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`;
+      document.getElementById('currentFolio').textContent = folioCode;
+
+      document.getElementById('inputEconomico').value = '';
+      document.getElementById('inputPlaca').value = '';
+      document.getElementById('inputCarga').value = '';
+      document.getElementById('inputDestino').value = '';
+      document.getElementById('inputOperador').value = '';
+      
+      Object.keys(counts).forEach(k => counts[k] = 0);
+      updateAllCountsUI();
+
+      document.getElementById('screenHome').classList.remove('active');
+      document.getElementById('screenCapture').classList.add('active');
+    }
+
+    function closeCaptureScreen() {
+      document.getElementById('screenCapture').classList.remove('active');
+      document.getElementById('screenHome').classList.add('active');
+      renderRecords();
+    }
+
+    function setMovimiento(mov, btn) {
+      currentMovimiento = mov;
+      document.querySelectorAll('.segment-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    function updateCount(key, delta) {
+      counts[key] = Math.max(0, counts[key] + delta);
+      document.getElementById('val_' + key).textContent = counts[key];
+      const card = document.getElementById('card_' + key);
+      if (counts[key] > 0) card.classList.add('has-value');
+      else card.classList.remove('has-value');
+      recalcTotal();
+    }
+
+    function updateAllCountsUI() {
+      Object.keys(counts).forEach(k => {
+        document.getElementById('val_' + k).textContent = counts[k];
+        const card = document.getElementById('card_' + k);
+        if (counts[k] > 0) card.classList.add('has-value');
+        else card.classList.remove('has-value');
+      });
+      recalcTotal();
+    }
+
+    function recalcTotal() {
+      const total = Object.values(counts).reduce((a,b) => a + b, 0);
+      document.getElementById('bottomTotalVal').textContent = total;
+    }
+
+    // ============================================
+    // ESCÁNER DE CÓDIGO DE BARRAS INTELIGENTE
+    // ============================================
+
+    // Procesa el texto del código de barras (ej. Code-128 con "Economico: 3114" o "Placa:A726AF")
+    function processScannedBarcode(rawText) {
+      if (!rawText) return;
+      const text = rawText.trim();
+
+      // Vibración de confirmación si el celular lo soporta
+      if (navigator.vibrate) navigator.vibrate([80, 50, 80]);
+
+      let detectedEcon = null;
+      let detectedPlaca = null;
+
+      // Buscar si el código contiene 'Economico: XXXX' o 'Economico:XXXX'
+      const econMatch = text.match(/econ[oó]mico\s*:\s*([^\r\n\s]+)/i);
+      if (econMatch) {
+        detectedEcon = econMatch[1].trim();
+      }
+
+      // Buscar si el código contiene 'Placa:XXXX' o 'Placa: XXXX'
+      const placaMatch = text.match(/placa\s*:\s*([^\r\n\s]+)/i);
+      if (placaMatch) {
+        detectedPlaca = placaMatch[1].trim();
+      }
+
+      // Si detectó ambos o al menos uno con prefijo:
+      if (detectedEcon || detectedPlaca) {
+        let mensajes = [];
+        if (detectedEcon) {
+          document.getElementById('inputEconomico').value = detectedEcon;
+          mensajes.push(`Económico: ${detectedEcon}`);
+        }
+        if (detectedPlaca) {
+          document.getElementById('inputPlaca').value = detectedPlaca;
+          mensajes.push(`Placa: ${detectedPlaca}`);
+        }
+        showToast('✓ Escaneado: ' + mensajes.join(' | '));
+        stopScanner();
+        return;
+      }
+
+      // Si es un código plano sin prefijo (ej. sólo '3114' o 'A726AF')
+      if (currentTargetInputId) {
+        // Limpiar si traía texto 'Economico:' residual
+        const cleaned = text.replace(/^econ[oó]mico\s*:\s*/i, '').replace(/^placa\s*:\s*/i, '');
+        document.getElementById(currentTargetInputId).value = cleaned;
+        showToast('✓ Código capturado: ' + cleaned);
+      }
+
+      stopScanner();
+    }
+
+    async function startScanner(targetInputId, title) {
+      currentTargetInputId = targetInputId;
+      document.getElementById('scannerTargetTitle').textContent = 'Escanear ' + title;
+      document.getElementById('modalScanner').classList.add('active');
+      document.getElementById('scannerStatusText').textContent = 'Iniciando cámara... Enfoca el código';
+
+      isScanningActive = true;
+
+      try {
+        if (!window.ZXing) {
+          document.getElementById('scannerStatusText').textContent = 'Enfoca el código o usa los botones rápidos';
+          return;
+        }
+
+        codeReader = new ZXing.BrowserMultiFormatReader();
+        const videoInputDevices = await codeReader.listVideoInputDevices();
+
+        // Elegir cámara trasera si existe
+        let selectedDeviceId = undefined;
+        if (videoInputDevices.length > 0) {
+          const backCam = videoInputDevices.find(device => 
+            device.label.toLowerCase().includes('back') || 
+            device.label.toLowerCase().includes('trasera') || 
+            device.label.toLowerCase().includes('environment')
+          );
+          selectedDeviceId = backCam ? backCam.deviceId : videoInputDevices[videoInputDevices.length - 1].deviceId;
+        }
+
+        document.getElementById('scannerStatusText').textContent = 'Alinea el código de barras dentro del recuadro verde';
+
+        codeReader.decodeFromVideoDevice(selectedDeviceId, 'cameraFeed', (result, err) => {
+          if (result && isScanningActive) {
+            isScanningActive = false;
+            processScannedBarcode(result.getText());
+          }
+        });
+      } catch (err) {
+        console.error('Error al iniciar escáner:', err);
+        document.getElementById('scannerStatusText').textContent = 'No se pudo acceder a la cámara. Puedes usar los botones rápidos.';
+      }
+    }
+
+    function stopScanner() {
+      isScanningActive = false;
+      document.getElementById('modalScanner').classList.remove('active');
+      if (codeReader) {
+        try {
+          codeReader.reset();
+        } catch (e) {}
+        codeReader = null;
+      }
+      const video = document.getElementById('cameraFeed');
+      if (video && video.srcObject) {
+        video.srcObject.getTracks().forEach(t => t.stop());
+        video.srcObject = null;
+      }
+    }
+
+    function saveCurrentRecord() {
+      const economico = document.getElementById('inputEconomico').value.trim();
+      const placa = document.getElementById('inputPlaca').value.trim();
+      const total = Object.values(counts).reduce((a,b) => a + b, 0);
+
+      if (!economico && !placa) {
+        alert('Por favor ingresa o escanea el Económico o la Placa de la unidad.');
+        return;
+      }
+
+      const newRecord = {
+        id: Date.now().toString(),
+        folio: document.getElementById('currentFolio').textContent,
+        fechaHora: new Date().toISOString(),
+        tipoMovimiento: currentMovimiento,
+        economico: economico,
+        placa: placa,
+        numeroCarga: document.getElementById('inputCarga').value.trim(),
+        destino: document.getElementById('inputDestino').value.trim(),
+        operador: document.getElementById('inputOperador').value.trim(),
+        abatibles: counts.abatibles,
+        normales: counts.normales,
+        atvNormal: counts.atvNormal,
+        atvAbatible: counts.atvAbatible,
+        cartonMadera: counts.cartonMadera,
+        totalEstructuras: total
+      };
+
+      const records = getStoredRecords();
+      records.unshift(newRecord);
+      saveRecordsToStorage(records);
+
+      showToast(`✓ Vale ${newRecord.folio} guardado`);
+      closeCaptureScreen();
+    }
+  </script>
+</body>
+</html>

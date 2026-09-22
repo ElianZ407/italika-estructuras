@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Excel - Vacaciones y Planificación (Ayudante de Chofer)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --excel-green: #107C41;
+      --excel-green-dark: #0B5C30;
+      --excel-border: #D4D4D4;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', 'Inter', -apple-system, sans-serif;
+    }
+
+    body {
+      background: #EAEAEA;
+      color: #242424;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .excel-topbar {
+      background: var(--excel-green);
+      color: white;
+      padding: 10px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+
+    .excel-title-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .excel-icon {
+      background: white;
+      color: var(--excel-green);
+      font-weight: 900;
+      font-size: 14px;
+      width: 28px;
+      height: 28px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .file-name-title {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-excel-action {
+      background: rgba(255,255,255,0.18);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.3);
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-excel-action:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .btn-download-green {
+      background: white;
+      color: var(--excel-green-dark);
+      font-weight: 700;
+      border: none;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    .excel-formula-bar {
+      background: #FDFDFD;
+      border-bottom: 1px solid var(--excel-border);
+      padding: 6px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+    }
+
+    .name-box {
+      min-width: 140px;
+      padding: 4px 8px;
+      border: 1px solid var(--excel-border);
+      border-radius: 3px;
+      background: white;
+      font-weight: 600;
+      color: #333;
+      text-align: center;
+    }
+
+    .formula-input {
+      flex: 1;
+      padding: 4px 10px;
+      border: 1px solid var(--excel-border);
+      border-radius: 3px;
+      background: white;
+      color: #222;
+      font-family: Consolas, monospace;
+      font-size: 13px;
+    }
+
+    .app-workspace {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 12px;
+      gap: 12px;
+      overflow: hidden;
+    }
+
+    .schedule-panel {
+      display: none;
+      background: white;
+      border: 1px solid var(--excel-border);
+      border-radius: 8px;
+      padding: 14px 18px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    }
+
+    .schedule-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .schedule-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: #1F2937;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .kpi-schedule-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .kpi-schedule-card {
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 6px;
+      padding: 10px 14px;
+    }
+
+    .kpi-schedule-card.highlight {
+      background: #F0FDF4;
+      border-color: #86EFAC;
+    }
+
+    .kpi-val {
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--excel-green-dark);
+    }
+
+    .kpi-lbl {
+      font-size: 11px;
+      color: #64748B;
+      font-weight: 600;
+    }
+
+    .months-timeline {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 4px;
+      margin-top: 4px;
+    }
+
+    @media (max-width: 768px) {
+      .months-timeline {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .month-box {
+      border-radius: 6px;
+      padding: 8px 4px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .month-box.active {
+      background: #EFF6FF;
+      border: 1px solid #BFDBFE;
+      color: #1D4ED8;
+    }
+
+    .month-box.blocked {
+      background: #FEE2E2;
+      border: 1px solid #FCA5A5;
+      color: #991B1B;
+    }
+
+    .month-tag {
+      font-size: 9px;
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+
+    .month-box.active .month-tag { background: #DBEAFE; color: #1E40AF; }
+    .month-box.blocked .month-tag { background: #EF4444; color: white; font-weight: 800; }
+
+    .filter-banner {
+      background: #EFF6FF;
+      border: 1px solid #BFDBFE;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 12px;
+      color: #1E40AF;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .badge-filter {
+      background: #1E3A8A;
+      color: white;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+
+    .drop-zone-card {
+      background: white;
+      border: 2px dashed #107C41;
+      border-radius: 10px;
+      padding: 24px 20px;
+      text-align: center;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .drop-zone-card:hover { background: #F0FDF4; }
+
+    .upload-btn {
+      background: var(--excel-green);
+      color: white;
+      border: none;
+      padding: 9px 20px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .controls-panel {
+      display: none;
+      background: white;
+      border: 1px solid var(--excel-border);
+      border-radius: 6px;
+      padding: 10px 16px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 13px;
+    }
+
+    .selectors-container {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .col-selector-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+    }
+
+    select {
+      padding: 5px 8px;
+      border: 1px solid #AAA;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 12px;
+      max-width: 220px;
+    }
+
+    .spreadsheet-frame {
+      display: none;
+      flex: 1;
+      background: white;
+      border: 1px solid var(--excel-border);
+      border-radius: 4px;
+      overflow: auto;
+      max-height: 65vh;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    }
+
+    table.excel-table {
+      border-collapse: collapse;
+      font-size: 12px;
+      color: #000;
+      white-space: nowrap;
+    }
+
+    th.col-letter {
+      background: #F3F2F1;
+      color: #666;
+      border: 1px solid #D4D4D4;
+      text-align: center;
+      font-weight: 600;
+      padding: 3px 6px;
+      font-size: 11px;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+
+    th.excel-header {
+      background: #F9F9F9;
+      color: #242424;
+      border: 1px solid #D4D4D4;
+      padding: 6px 12px;
+      font-weight: 700;
+      position: sticky;
+      top: 24px;
+      z-index: 4;
+      text-align: left;
+    }
+
+    th.excel-header.highlight-puesto {
+      background: #DBEAFE;
+      color: #1E40AF;
+      border: 2px solid #93C5FD;
+    }
+
+    th.excel-header.highlight-col {
+      background: #E2EFDA;
+      color: #276A3C;
+      border-color: #A9D18E;
+    }
+
+    th.excel-header.meses-col {
+      background: #FEF3C7;
+      color: #92400E;
+      border: 2px solid #F59E0B;
+      font-weight: 800;
+    }
+
+    th.excel-header.vacaciones-col {
+      background: #C6EFCE;
+      color: #006100;
+      border: 2px solid #37A250;
+      font-weight: 800;
+    }
+
+    td.row-number {
+      background: #F3F2F1;
+      color: #666;
+      border: 1px solid #D4D4D4;
+      text-align: center;
+      font-weight: 600;
+      padding: 4px 8px;
+      font-size: 11px;
+      position: sticky;
+      left: 0;
+      z-index: 3;
+      user-select: none;
+    }
+
+    td.excel-cell {
+      border: 1px solid #E1E1E1;
+      padding: 5px 10px;
+      background: white;
+    }
+
+    tr.row-ayudante td.excel-cell {
+      background: #F0FDF4;
+    }
+
+    tr.row-otro td.excel-cell {
+      color: #4B5563;
+    }
+
+    td.excel-cell.atinguiedad-val {
+      font-weight: 700;
+      color: #1E3A8A;
+      text-align: center;
+    }
+
+    td.excel-cell.meses-val {
+      background: #FEF3C7;
+      color: #92400E;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    td.excel-cell.vacaciones-val {
+      background: #C6EFCE;
+      color: #006100;
+      font-weight: 900;
+      text-align: center;
+      font-size: 13px;
+      border: 1px solid #A9D18E;
+    }
+
+    td.excel-cell.na-val {
+      color: #9CA3AF;
+      text-align: center;
+      font-style: italic;
+    }
+
+    .toggle-switch {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #374151;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Barra Superior Estilo Excel -->
+  <div class="excel-topbar">
+    <div class="excel-title-box">
+      <div class="excel-icon">X</div>
+      <div>
+        <div class="file-name-title" id="displayFileName">Vacaciones_Ayudante_Chofer.xlsx</div>
+        <div style="font-size: 11px; opacity: 0.85;">Planificación de 9 Meses Hábiles (Excluyendo Mayo, Noviembre y Diciembre)</div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button class="btn-excel-action btn-download-green" id="btnDownloadTop" style="display: none;" onclick="downloadExcel()">
+        💾 Guardar / Descargar Excel con Resumen
+      </button>
+      <a href="/" class="btn-excel-action">
+        ← Ir a App Estructuras
+      </a>
+    </div>
+  </div>
+
+  <!-- Barra de Fórmula Excel -->
+  <div class="excel-formula-bar">
+    <div class="name-box">Resumen Ejecutivo</div>
+    <span style="color: #737373; font-weight: bold; font-style: italic;">fx</span>
+    <input type="text" class="formula-input" readonly value='=PROMEDIO_MENSUAL = TOTAL_DIAS_VACACIONES / 9_MESES_HABILES'>
+  </div>
+
+  <div class="app-workspace">
+
+    <!-- Tarjeta de Planificación Promedios (9 Meses Hábiles) -->
+    <div class="schedule-panel" id="schedulePanel">
+      <div class="schedule-header">
+        <div class="schedule-title">
+          📅 Promedio y Planificación Anual (9 Meses Disponibles)
+        </div>
+        <span style="font-size: 12px; color: #DC2626; font-weight: 700;">
+          🚫 Excluidos por Temporada Alta: Mayo, Noviembre y Diciembre
+        </span>
+      </div>
+
+      <div class="kpi-schedule-grid">
+        <div class="kpi-schedule-card">
+          <div class="kpi-val" id="planAyudantes">0</div>
+          <div class="kpi-lbl">Total Ayudantes de Chofer</div>
+        </div>
+        <div class="kpi-schedule-card">
+          <div class="kpi-val" id="planTotalDias">0</div>
+          <div class="kpi-lbl">Total Días de Vacaciones Acumulados</div>
+        </div>
+        <div class="kpi-schedule-card highlight">
+          <div class="kpi-val" id="planPromedioDiasMes">0</div>
+          <div class="kpi-lbl">Promedio Días a Otorgar / Mes (en 9 meses)</div>
+        </div>
+        <div class="kpi-schedule-card highlight">
+          <div class="kpi-val" id="planPromedioPersonasMes">0</div>
+          <div class="kpi-lbl">Promedio Ayudantes en Vacaciones / Mes</div>
+        </div>
+      </div>
+
+      <!-- Línea de tiempo de los 12 meses -->
+      <div style="font-size: 11px; font-weight: 700; color: #475569; margin-bottom: 4px;">
+        Distribución por Meses del Año:
+      </div>
+      <div class="months-timeline">
+        <div class="month-box active"><span>Ene</span><span class="month-tag" id="tagEne">Hábil</span></div>
+        <div class="month-box active"><span>Feb</span><span class="month-tag" id="tagFeb">Hábil</span></div>
+        <div class="month-box active"><span>Mar</span><span class="month-tag" id="tagMar">Hábil</span></div>
+        <div class="month-box active"><span>Abr</span><span class="month-tag" id="tagAbr">Hábil</span></div>
+        <div class="month-box blocked"><span>May</span><span class="month-tag">BLOQUEADO</span></div>
+        <div class="month-box active"><span>Jun</span><span class="month-tag" id="tagJun">Hábil</span></div>
+        <div class="month-box active"><span>Jul</span><span class="month-tag" id="tagJul">Hábil</span></div>
+        <div class="month-box active"><span>Ago</span><span class="month-tag" id="tagAgo">Hábil</span></div>
+        <div class="month-box active"><span>Sep</span><span class="month-tag" id="tagSep">Hábil</span></div>
+        <div class="month-box active"><span>Oct</span><span class="month-tag" id="tagOct">Hábil</span></div>
+        <div class="month-box blocked"><span>Nov</span><span class="month-tag">BLOQUEADO</span></div>
+        <div class="month-box blocked"><span>Dic</span><span class="month-tag">BLOQUEADO</span></div>
+      </div>
+    </div>
+
+    <!-- Reglas activas -->
+    <div class="filter-banner">
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <span>Puesto:</span>
+        <span class="badge-filter">AYUDANTE DE CHOFER</span>
+        <span>•</span>
+        <span>Meses Requeridos: <strong>Años × 12</strong></span>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="chkOnlyAyudante" onchange="renderExcelTable()">
+        <span>Filtrar sólo Ayudantes de Chofer en tabla</span>
+      </label>
+    </div>
+
+    <!-- Zona de Carga -->
+    <div class="drop-zone-card" id="dropZone" onclick="document.getElementById('excelFileInput').click()">
+      <input type="file" id="excelFileInput" style="display: none;" accept=".xlsx, .xls, .csv">
+      <div style="font-size: 32px;">📑</div>
+      <div style="font-size: 16px; font-weight: 700; color: var(--excel-green-dark);">
+        Sube o arrastra aquí tu archivo Excel
+      </div>
+      <div style="font-size: 12px; color: #666;">
+        Calcula el plan y promedio para los 9 meses hábiles automáticamente
+      </div>
+      <button class="upload-btn" type="button" onclick="event.stopPropagation(); document.getElementById('excelFileInput').click()">
+        Examinar Archivo
+      </button>
+    </div>
+
+    <!-- Panel de control de columnas y botón descarga -->
+    <div class="controls-panel" id="controlsPanel">
+      <div class="selectors-container">
+        <!-- Columna Puesto -->
+        <div class="col-selector-box">
+          <label for="colPuestoSelect">Columna Puesto:</label>
+          <select id="colPuestoSelect" onchange="onPuestoColumnChange()"></select>
+        </div>
+
+        <!-- Columna Antigüedad -->
+        <div class="col-selector-box">
+          <label for="colAntiguedadSelect">Columna Antigüedad:</label>
+          <select id="colAntiguedadSelect" onchange="onAntiguedadColumnChange()"></select>
+        </div>
+      </div>
+
+      <button class="btn-excel-action btn-download-green" onclick="downloadExcel()">
+        💾 Descargar Excel con Resumen y Detalle (.xlsx)
+      </button>
+    </div>
+
+    <!-- Hoja de Cálculo Estilo Excel -->
+    <div class="spreadsheet-frame" id="spreadsheetFrame">
+      <table class="excel-table" id="excelTable">
+        <thead id="excelThead"></thead>
+        <tbody id="excelTbody"></tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <script>
+    let rawJsonData = [];
+    let originalHeaders = [];
+    let seniorityColumn = '';
+    let puestoColumn = '';
+    let processedRows = [];
+    let fileBaseName = 'vacaciones_ayudante_chofer';
+
+    function getDiasVacaciones(aniosValue) {
+      if (aniosValue === null || aniosValue === undefined || aniosValue === '') return 0;
+      const num = parseFloat(String(aniosValue).replace(/[^0-9.]/g, ''));
+      if (isNaN(num) || num <= 0) return 0;
+
+      const a = Math.floor(num);
+      if (a === 0) return 0;
+      if (a === 1) return 12;
+      if (a === 2) return 14;
+      if (a === 3) return 16;
+      if (a === 4) return 18;
+      if (a === 5) return 20;
+      if (a >= 6 && a <= 10) return 22;
+      if (a >= 11 && a <= 15) return 24;
+      if (a >= 16 && a <= 20) return 26;
+      if (a >= 21 && a <= 25) return 28;
+      if (a >= 26 && a <= 30) return 30;
+      if (a >= 31 && a <= 35) return 32;
+      return 32 + Math.floor((a - 31) / 5) * 2;
+    }
+
+    function getMesesRequeridos(aniosValue) {
+      if (aniosValue === null || aniosValue === undefined || aniosValue === '') return '12 meses';
+      const num = parseFloat(String(aniosValue).replace(/[^0-9.]/g, ''));
+      if (isNaN(num) || num <= 0) return '12 meses';
+
+      const a = Math.floor(num);
+      return `${a * 12} meses`;
+    }
+
+    function isAyudanteDeChofer(puestoValue) {
+      if (!puestoValue) return false;
+      const clean = String(puestoValue)
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim();
+      
+      return clean.includes('ayudante') && clean.includes('chofer');
+    }
+
+    function getExcelColumnLetters(index) {
+      let result = '';
+      while (index >= 0) {
+        result = String.fromCharCode((index % 26) + 65) + result;
+        index = Math.floor(index / 26) - 1;
+      }
+      return result;
+    }
+
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('excelFileInput');
+
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.background = '#E8F5E9'; });
+    dropZone.addEventListener('dragleave', () => { dropZone.style.background = 'white'; });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.style.background = 'white';
+      if (e.dataTransfer.files.length > 0) processFile(e.dataTransfer.files[0]);
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) processFile(e.target.files[0]);
+    });
+
+    function processFile(file) {
+      fileBaseName = file.name.replace(/\.[^/.]+$/, '');
+      document.getElementById('displayFileName').textContent = file.name;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+        
+        const firstSheet = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[firstSheet];
+
+        const json = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+        if (!json || json.length === 0) {
+          alert('El archivo no contiene registros.');
+          return;
+        }
+
+        rawJsonData = json;
+        originalHeaders = Object.keys(json[0]);
+
+        detectColumns();
+        setupControls();
+        renderExcelTable();
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function detectColumns() {
+      seniorityColumn = '';
+      for (const h of originalHeaders) {
+        const clean = h.trim().toUpperCase();
+        if (clean === 'ATINGUIEDAD' || clean === 'ANTIGUEDAD' || clean === 'ANTIGÜEDAD' || clean.includes('ATING')) {
+          seniorityColumn = h;
+          break;
+        }
+      }
+      if (!seniorityColumn) seniorityColumn = originalHeaders[0];
+
+      puestoColumn = '';
+      for (const h of originalHeaders) {
+        if (/id|c[oó]digo/i.test(h)) continue;
+        const hasMatch = rawJsonData.some(row => isAyudanteDeChofer(row[h]));
+        if (hasMatch) {
+          puestoColumn = h;
+          break;
+        }
+      }
+
+      if (!puestoColumn) {
+        for (const h of originalHeaders) {
+          const lower = h.toLowerCase().trim();
+          if ((lower.includes('posicion') || lower.includes('posici')) && lower.includes('nombre')) {
+            puestoColumn = h;
+            break;
+          }
+        }
+      }
+
+      if (!puestoColumn) puestoColumn = originalHeaders[0];
+    }
+
+    function setupControls() {
+      document.getElementById('schedulePanel').style.display = 'block';
+      document.getElementById('controlsPanel').style.display = 'flex';
+      document.getElementById('spreadsheetFrame').style.display = 'block';
+      document.getElementById('btnDownloadTop').style.display = 'flex';
+
+      const puestoSel = document.getElementById('colPuestoSelect');
+      puestoSel.innerHTML = originalHeaders.map(h => 
+        `<option value="${h}" ${h === puestoColumn ? 'selected' : ''}>${h}</option>`
+      ).join('');
+
+      const antSel = document.getElementById('colAntiguedadSelect');
+      antSel.innerHTML = originalHeaders.map(h => 
+        `<option value="${h}" ${h === seniorityColumn ? 'selected' : ''}>${h}</option>`
+      ).join('');
+    }
+
+    function onPuestoColumnChange() {
+      puestoColumn = document.getElementById('colPuestoSelect').value;
+      renderExcelTable();
+    }
+
+    function onAntiguedadColumnChange() {
+      seniorityColumn = document.getElementById('colAntiguedadSelect').value;
+      renderExcelTable();
+    }
+
+    function renderExcelTable() {
+      const onlyAyudante = document.getElementById('chkOnlyAyudante').checked;
+
+      let ayudantesCount = 0;
+      let totalDiasAyudantes = 0;
+
+      processedRows = rawJsonData.map(row => {
+        const puestoVal = row[puestoColumn];
+        const esAyudante = isAyudanteDeChofer(puestoVal);
+        const aniosVal = row[seniorityColumn];
+
+        if (esAyudante) {
+          ayudantesCount++;
+          const dias = getDiasVacaciones(aniosVal);
+          const meses = getMesesRequeridos(aniosVal);
+          totalDiasAyudantes += dias;
+
+          return {
+            ...row,
+            '_esAyudante': true,
+            'MESES REQUERIDOS': meses,
+            'DÍAS DE VACACIONES': dias
+          };
+        } else {
+          return {
+            ...row,
+            '_esAyudante': false,
+            'MESES REQUERIDOS': 'N/A',
+            'DÍAS DE VACACIONES': 'N/A'
+          };
+        }
+      });
+
+      const MESES_HABILES = 9;
+      const promedioDiasMes = (totalDiasAyudantes / MESES_HABILES).toFixed(1);
+      const promedioPersonasMes = (ayudantesCount / MESES_HABILES).toFixed(1);
+
+      document.getElementById('planAyudantes').textContent = ayudantesCount;
+      document.getElementById('planTotalDias').textContent = totalDiasAyudantes;
+      document.getElementById('planPromedioDiasMes').textContent = `${promedioDiasMes} días/mes`;
+      document.getElementById('planPromedioPersonasMes').textContent = `~${promedioPersonasMes} ayudantes/mes`;
+
+      const habilesIds = ['tagEne', 'tagFeb', 'tagMar', 'tagAbr', 'tagJun', 'tagJul', 'tagAgo', 'tagSep', 'tagOct'];
+      habilesIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = `~${Math.round(ayudantesCount / 9)} pers.`;
+      });
+
+      let rowsToDisplay = processedRows;
+      if (onlyAyudante && ayudantesCount > 0) {
+        rowsToDisplay = processedRows.filter(r => r._esAyudante);
+      }
+
+      const displayHeaders = [...originalHeaders];
+      const insertIndex = displayHeaders.indexOf(seniorityColumn);
+      if (insertIndex !== -1) {
+        displayHeaders.splice(insertIndex + 1, 0, 'MESES REQUERIDOS', 'DÍAS DE VACACIONES');
+      } else {
+        displayHeaders.push('MESES REQUERIDOS', 'DÍAS DE VACACIONES');
+      }
+
+      const thead = document.getElementById('excelThead');
+      const tbody = document.getElementById('excelTbody');
+
+      let letterRow = '<tr><th class="col-letter" style="width: 45px;"></th>';
+      displayHeaders.forEach((h, idx) => {
+        letterRow += `<th class="col-letter">${getExcelColumnLetters(idx)}</th>`;
+      });
+      letterRow += '</tr>';
+
+      let headerRow = '<tr><th class="col-letter">1</th>';
+      displayHeaders.forEach(h => {
+        let cls = 'excel-header';
+        if (h === puestoColumn) cls += ' highlight-puesto';
+        if (h === seniorityColumn) cls += ' highlight-col';
+        if (h === 'MESES REQUERIDOS') cls += ' meses-col';
+        if (h === 'DÍAS DE VACACIONES') cls += ' vacaciones-col';
+
+        headerRow += `
+          <th class="${cls}">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+              <span>${h}</span>
+              <span style="font-size: 9px; opacity: 0.6;">▼</span>
+            </div>
+          </th>
+        `;
+      });
+      headerRow += '</tr>';
+
+      thead.innerHTML = letterRow + headerRow;
+
+      tbody.innerHTML = rowsToDisplay.slice(0, 300).map((row, rIdx) => {
+        const rowNum = rIdx + 2;
+        const rowClass = row._esAyudante ? 'row-ayudante' : 'row-otro';
+        let rowHtml = `<tr class="${rowClass}"><td class="row-number">${rowNum}</td>`;
+
+        displayHeaders.forEach(h => {
+          const val = row[h] !== undefined ? row[h] : '';
+
+          if (h === 'DÍAS DE VACACIONES') {
+            if (row._esAyudante) {
+              rowHtml += `<td class="excel-cell vacaciones-val">${val} días</td>`;
+            } else {
+              rowHtml += `<td class="excel-cell na-val">N/A</td>`;
+            }
+          } else if (h === 'MESES REQUERIDOS') {
+            if (row._esAyudante) {
+              rowHtml += `<td class="excel-cell meses-val">${val}</td>`;
+            } else {
+              rowHtml += `<td class="excel-cell na-val">N/A</td>`;
+            }
+          } else if (h === seniorityColumn) {
+            rowHtml += `<td class="excel-cell atinguiedad-val">${val}</td>`;
+          } else if (h === puestoColumn) {
+            const isAy = row._esAyudante;
+            rowHtml += `<td class="excel-cell" style="font-weight: ${isAy ? '700' : '500'}; color: ${isAy ? '#16A34A' : '#374151'};">${val}</td>`;
+          } else {
+            rowHtml += `<td class="excel-cell">${val}</td>`;
+          }
+        });
+
+        rowHtml += '</tr>';
+        return rowHtml;
+      }).join('');
+    }
+
+    // =========================================================================
+    // EXPORTACIÓN A EXCEL CON HOJA DE RESUMEN EJECUTIVO + HOJA DE DETALLE
+    // =========================================================================
+    function downloadExcel() {
+      if (processedRows.length === 0) return;
+
+      const MESES_HABILES = 9;
+      const ayudantes = processedRows.filter(r => r._esAyudante);
+      const totalAyudantes = ayudantes.length;
+      const totalDias = ayudantes.reduce((sum, r) => sum + (typeof r['DÍAS DE VACACIONES'] === 'number' ? r['DÍAS DE VACACIONES'] : 0), 0);
+      const promDiasMes = (totalDias / MESES_HABILES).toFixed(1);
+      const promPersMes = (totalAyudantes / MESES_HABILES).toFixed(1);
+      const cupoPorMes = Math.round(totalAyudantes / MESES_HABILES);
+      const diasPorMes = Math.round(totalDias / MESES_HABILES);
+
+      const wb = XLSX.utils.book_new();
+
+      // 1. Hoja 1: RESUMEN Y PLANIFICACIÓN (Información General)
+      const resumenData = [
+        ['PLANIFICACIÓN DE VACACIONES ANUAL - AYUDANTES DE CHOFER', ''],
+        ['', ''],
+        ['INDICADOR', 'VALOR'],
+        ['Puesto Evaluado', 'AYUDANTE DE CHOFER'],
+        ['Total Ayudantes de Chofer', totalAyudantes],
+        ['Total Días de Vacaciones Acumulados', totalDias],
+        ['Meses Hábiles Disponibles', '9 meses (Ene, Feb, Mar, Abr, Jun, Jul, Ago, Sep, Oct)'],
+        ['Meses Bloqueados por Temporada Alta', 'Mayo (Hot Sale), Noviembre (Buen Fin), Diciembre (Navidad)'],
+        ['Promedio Días de Vacaciones a Otorgar por Mes', `${promDiasMes} días/mes`],
+        ['Promedio Ayudantes en Vacaciones por Mes', `~${promPersMes} personas/mes`],
+        ['', ''],
+        ['DISTRIBUCIÓN Y PROGRAMACIÓN SUGERIDA POR MES', ''],
+        ['MES', 'ESTATUS', 'CUPO SUGERIDO AYUDANTES', 'DIAS A CUBRIR'],
+        ['Enero', 'HÁBIL', `${cupoPorMes} ayudantes`, `${diasPorMes} días`],
+        ['Febrero', 'HÁBIL', `${cupoPorMes} ayudantes`, `${diasPorMes} días`],
+        ['Marzo', 'HÁBIL', `${cupoPorMes} ayudantes`, `${diasPorMes} días`],
+        ['Abril', 'HÁBIL', `${cupoPorMes} ayudantes`, `${diasPorMes} días`],
+        ['Mayo', 'BLOQUEADO (Temporada Alta / Hot Sale)', '0 ayudantes', '0 días'],
+        ['Junio', 'HÁBIL', `${cupoPorMes} ayudantes`, `${diasPorMes} días`],
+        ['Julio', 'HÁBIL', `${cupoPorMes} ayudantes`, `${diasPorMes} días`],
+        ['Agosto', 'HÁBIL', `${cupoPorMes} ayudantes`, `${diasPorMes} días`],
+        ['Septiembre', 'HÁBIL', `${cupoPorMes} ayudantes`, `${diasPorMes} días`],
+        ['Octubre', 'HÁBIL', `${cupoPorMes} ayudantes`, `${diasPorMes} días`],
+        ['Noviembre', 'BLOQUEADO (Buen Fin / Black Friday)', '0 ayudantes', '0 días'],
+        ['Diciembre', 'BLOQUEADO (Fin de Año / Temporada Navideña)', '0 ayudantes', '0 días']
+      ];
+
+      const wsResumen = XLSX.utils.aoa_to_sheet(resumenData);
+
+      // Anchos amplios y cómodos para que NADA salga cortado en Excel
+      wsResumen['!cols'] = [
+        { wch: 50 }, // Columna A: 'Total Días de Vacaciones Acumulados', etc.
+        { wch: 70 }, // Columna B: 'Mayo (Hot Sale), Noviembre (Buen Fin)...', etc.
+        { wch: 32 }, // Columna C: 'CUPO SUGERIDO AYUDANTES'
+        { wch: 22 }  // Columna D: 'DIAS A CUBRIR'
+      ];
+
+      XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen y Planificación');
+
+      // 2. Hoja 2: DETALLE EMPLEADOS
+      const orderedHeaders = [...originalHeaders];
+      const atIdx = orderedHeaders.indexOf(seniorityColumn);
+      if (atIdx !== -1) {
+        orderedHeaders.splice(atIdx + 1, 0, 'MESES REQUERIDOS', 'DÍAS DE VACACIONES');
+      } else {
+        orderedHeaders.push('MESES REQUERIDOS', 'DÍAS DE VACACIONES');
+      }
+
+      const exportDetailRows = processedRows.map(row => {
+        const cleanRow = {};
+        orderedHeaders.forEach(k => {
+          cleanRow[k] = row[k];
+        });
+        return cleanRow;
+      });
+
+      const wsDetail = XLSX.utils.json_to_sheet(exportDetailRows);
+
+      // Auto-ajuste de anchos para todas las columnas de la hoja de empleados
+      wsDetail['!cols'] = orderedHeaders.map(col => {
+        let maxLen = col.length;
+        exportDetailRows.slice(0, 150).forEach(row => {
+          const val = String(row[col] || '');
+          if (val.length > maxLen) maxLen = val.length;
+        });
+        return { wch: Math.min(Math.max(maxLen + 4, 12), 45) };
+      });
+
+      XLSX.utils.book_append_sheet(wb, wsDetail, 'Detalle Empleados');
+
+      // Descargar archivo Excel
+      XLSX.writeFile(wb, `${fileBaseName}_con_Resumen_y_Plan.xlsx`);
+    }
+  </script>
+</body>
+</html>
