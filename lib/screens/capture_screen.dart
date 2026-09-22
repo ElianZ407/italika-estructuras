@@ -298,46 +298,33 @@ class _CaptureScreenState extends State<CaptureScreen> {
 
                           const SizedBox(height: 14),
 
-                          // Campo: Número Económico con botón de escaneo
-                          TextField(
-                            controller: _economicoController,
-                            decoration: InputDecoration(
-                              labelText: 'Económico de la Unidad',
-                              hintText: 'Ej. 5013',
-                              border: const OutlineInputBorder(),
-                              prefixIcon: const Icon(Icons.numbers),
-                              suffixIcon: IconButton(
-                                icon: const Icon(Icons.barcode_reader, size: 28),
-                                color: const Color(0xFF003893),
-                                tooltip: 'Escanear código de barras Económico',
-                                onPressed: () => _scanBarcode(
-                                  title: 'Económico',
+                          // Fila: Económico y Placa (se rellenan automáticamente al escanear)
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
                                   controller: _economicoController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Económico',
+                                    hintText: 'Ej. 3114',
+                                    border: OutlineInputBorder(),
+                                    prefixIcon: Icon(Icons.numbers),
+                                  ),
                                 ),
                               ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          // Campo: Placa con botón de escaneo
-                          TextField(
-                            controller: _placaController,
-                            decoration: InputDecoration(
-                              labelText: 'Placa de la Unidad',
-                              hintText: 'Ej. 23-008',
-                              border: const OutlineInputBorder(),
-                              prefixIcon: const Icon(Icons.credit_card),
-                              suffixIcon: IconButton(
-                                icon: const Icon(Icons.barcode_reader, size: 28),
-                                color: const Color(0xFF003893),
-                                tooltip: 'Escanear código de barras Placa',
-                                onPressed: () => _scanBarcode(
-                                  title: 'Placa',
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: TextField(
                                   controller: _placaController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Placa',
+                                    hintText: 'Ej. A726AF',
+                                    border: OutlineInputBorder(),
+                                    prefixIcon: Icon(Icons.credit_card),
+                                  ),
                                 ),
                               ),
-                            ),
+                            ],
                           ),
 
                           const SizedBox(height: 12),

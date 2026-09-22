@@ -642,37 +642,27 @@
 
         <div class="form-section-title">Datos de la Unidad</div>
         <div class="unit-card">
-          <!-- Botón Principal: Escaneo completo de Económico + Placa -->
-          <button class="scan-full-btn" onclick="startScanner('both', 'Unidad (Económico + Placa)')">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <!-- Un solo botón de escaneo -->
+          <button class="scan-full-btn" onclick="startScanner('both', 'Código de Unidad')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
               <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
               <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
               <path d="M3 17v2a2 2 0 0 1 2 2h2"></path>
               <line x1="7" y1="12" x2="17" y2="12"></line>
             </svg>
-            📷 ESCANEAR CÓDIGO (ECONÓMICO + PLACA)
+            📷 ESCANEAR CÓDIGO DE UNIDAD
           </button>
 
-          <!-- Económico -->
-          <div class="input-group">
-            <label class="input-label">Económico de la Unidad</label>
-            <div class="input-with-scan">
+          <!-- Económico y Placa (se llenan solos) -->
+          <div style="display: flex; gap: 8px;">
+            <div class="input-group" style="flex: 1;">
+              <label class="input-label">Económico de la Unidad</label>
               <input type="text" id="inputEconomico" class="text-input" placeholder="Ej. 3114">
-              <button class="scan-btn" onclick="startScanner('inputEconomico', 'Económico')">
-                📷 Escanear
-              </button>
             </div>
-          </div>
-
-          <!-- Placa -->
-          <div class="input-group">
-            <label class="input-label">Placa de la Unidad</label>
-            <div class="input-with-scan">
+            <div class="input-group" style="flex: 1;">
+              <label class="input-label">Placa de la Unidad</label>
               <input type="text" id="inputPlaca" class="text-input" placeholder="Ej. A726AF">
-              <button class="scan-btn" onclick="startScanner('inputPlaca', 'Placa')">
-                📷 Escanear
-              </button>
             </div>
           </div>
 
