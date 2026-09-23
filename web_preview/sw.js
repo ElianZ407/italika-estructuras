@@ -1,8 +1,7 @@
-const CACHE_NAME = 'italika-estructuras-v1';
+const CACHE_NAME = 'italika-estructuras-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
-  './vacaciones.html',
   './manifest.json',
   './icon.svg'
 ];
