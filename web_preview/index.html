@@ -881,21 +881,7 @@
 
       <div class="scanner-controls">
         <div id="scannerStatusText" class="scanner-status">
-          Enfoca el código de barras o QR dentro del recuadro...
-        </div>
-
-        <!-- Opciones de escaneo y prueba directa -->
-        <div class="quick-barcodes">
-          <label class="demo-barcode-btn" style="border-color: #3B82F6; color: #93C5FD; background: #1E3A8A; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-weight: 800;">
-            📷 Tomar Foto HD
-            <input type="file" accept="image/*" capture="environment" style="display: none;" onchange="handleScanFromFile(this)">
-          </label>
-          <button class="demo-barcode-btn" style="border-color: #22c55e; color: #22c55e;" onclick="processScannedBarcode('ECO: 3114 PLACA: A726AF')">
-            ⚡ ECO: 3114 | PLACA: A726AF
-          </button>
-          <button class="demo-barcode-btn" onclick="processScannedBarcode('ECO: 1042 PLACA: LF5589')">
-            ⚡ ECO: 1042 | PLACA: LF5589
-          </button>
+          Alinea el código dentro del recuadro verde
         </div>
       </div>
     </div>
@@ -1291,7 +1277,7 @@
     async function startFallbackZXing() {
       try {
         if (!window.ZXing) {
-          document.getElementById('scannerStatusText').textContent = 'Usa "Tomar Foto HD" o botones rápidos';
+          document.getElementById('scannerStatusText').textContent = 'Escáner no disponible en este navegador.';
           return;
         }
 
@@ -1336,7 +1322,7 @@
         });
       } catch (err) {
         console.error('Error al iniciar escáner secundario:', err);
-        document.getElementById('scannerStatusText').textContent = 'Cámara no accesible. Usa "Tomar Foto HD" o botones rápidos.';
+        document.getElementById('scannerStatusText').textContent = 'Cámara no accesible. Revisa los permisos.';
       }
     }
 
