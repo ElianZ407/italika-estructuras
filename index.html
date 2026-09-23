@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>ITALIKA • Validación de Estructuras</title>
   <!-- PWA Meta tags e Iconos -->
   <link rel="manifest" href="manifest.json">
@@ -694,6 +697,9 @@
       </div>
       <div style="display: flex; align-items: center; gap: 8px;">
         <span class="header-badge">Estructuras</span>
+        <button onclick="forceAppRefresh()" title="Comprobar y aplicar actualizaciones" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 50%; width: 28px; height: 28px; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;" aria-label="Actualizar">
+          🔄
+        </button>
         <button onclick="openInstallModal()" style="color: white; border: none; font-size: 11px; background: #E50914; padding: 5px 10px; border-radius: 14px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 8px rgba(229,9,20,0.4); white-space: nowrap; flex-shrink: 0;">
           📲 Instalar App
         </button>
@@ -932,6 +938,20 @@
           <a href="https://github.com/ElianZ407/italika-estructuras/releases" target="_blank" style="text-decoration: none; width: 100%; background: #003893; color: white; border: none; padding: 12px; border-radius: 10px; font-size: 13px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-sizing: border-box;">
             ⬇️ Descargar APK (GitHub Releases)
           </a>
+        </div>
+
+        <!-- Opción 3: Actualizaciones de la App -->
+        <div style="margin-top: 14px; background: #27272A; border: 1px solid #3F3F46; border-radius: 14px; padding: 14px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <strong style="font-size: 13px; color: white;">🔄 Actualizaciones de la App</strong>
+            <span style="font-size: 11px; color: #22C55E; font-weight: 800;" id="appVersionBadge">v2026.09.23</span>
+          </div>
+          <p style="font-size: 12px; color: #D4D4D8; margin-bottom: 10px; line-height: 1.4;">
+            La app se actualiza automáticamente al detectar cambios. Si no ves las últimas modificaciones, pulsa el botón para forzar la actualización y limpiar la caché.
+          </p>
+          <button onclick="forceAppRefresh()" style="width: 100%; background: #2563EB; color: white; border: none; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            🔄 Forzar actualización inmediata
+          </button>
         </div>
       </div>
     </div>
@@ -1501,16 +1521,118 @@
       }
     }
 
-    // Registrar Service Worker para soporte PWA y modo Offline
+    // ============================================
+    // SISTEMA DE AUTO-ACTUALIZACIÓN AUTOMÁTICA
+    // ============================================
+    const CURRENT_APP_VERSION = "2026.09.23.01";
+
+    // Forzar actualización inmediata y limpiar caché manualmente
+    async function forceAppRefresh() {
+      showToast('🔄 Verificando y actualizando app...');
+      try {
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+        if ('serviceWorker' in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          for (const reg of registrations) {
+            await reg.unregister();
+          }
+        }
+        localStorage.removeItem('italika_app_version');
+      } catch (e) {
+        console.warn('Error limpiando caché:', e);
+      }
+      setTimeout(() => {
+        window.location.href = window.location.pathname + '?nocache=' + Date.now();
+      }, 500);
+    }
+
+    // Verificar si hay nueva versión publicada en GitHub
+    async function checkForAppUpdates() {
+      try {
+        const response = await fetch('./version.json?nocache=' + Date.now(), { cache: 'no-store' });
+        if (response.ok) {
+          const data = await response.json();
+          const storedVersion = localStorage.getItem('italika_app_version');
+          
+          const badge = document.getElementById('appVersionBadge');
+          if (badge && data.version) badge.textContent = 'v' + data.version;
+
+          if (storedVersion && storedVersion !== data.version) {
+            console.log('Nueva versión detectada:', data.version, '(anterior:', storedVersion, ')');
+            localStorage.setItem('italika_app_version', data.version);
+            showToast('⚡ Actualizando a nueva versión...');
+            if ('caches' in window) {
+              const keys = await caches.keys();
+              await Promise.all(keys.map(k => caches.delete(k)));
+            }
+            setTimeout(() => {
+              window.location.reload(true);
+            }, 600);
+            return;
+          }
+          if (!storedVersion) {
+            localStorage.setItem('italika_app_version', data.version);
+          }
+        }
+      } catch (err) {
+        console.log('Verificación silenciosa de versión:', err);
+      }
+    }
+
+    // Registrar Service Worker para PWA y actualización en segundo plano
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').then(() => {
-          console.log('PWA ServiceWorker registrado');
-        }).catch(err => {
-          console.log('SW error:', err);
+        navigator.serviceWorker.register('./sw.js?v=' + CURRENT_APP_VERSION, { updateViaCache: 'none' })
+          .then((reg) => {
+            console.log('PWA ServiceWorker activo');
+            reg.update();
+
+            // Detectar nueva versión lista
+            reg.addEventListener('updatefound', () => {
+              const newWorker = reg.installing;
+              if (newWorker) {
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    newWorker.postMessage({ action: 'skipWaiting' });
+                    showToast('✓ Nueva versión disponible. Aplicando...');
+                    setTimeout(() => window.location.reload(true), 600);
+                  }
+                });
+              }
+            });
+          }).catch(err => {
+            console.log('SW error:', err);
+          });
+
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (!refreshing) {
+            refreshing = true;
+            window.location.reload(true);
+          }
         });
       });
+
+      // Chequeo automático al volver a la app o desbloquear pantalla
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+          checkForAppUpdates();
+          navigator.serviceWorker.getRegistration().then(reg => { if (reg) reg.update(); });
+        }
+      });
+
+      // Chequeo periódico cada 45 segundos
+      setInterval(() => {
+        checkForAppUpdates();
+        navigator.serviceWorker.getRegistration().then(reg => { if (reg) reg.update(); });
+      }, 45000);
     }
+
+    // Comprobación inicial al arrancar
+    checkForAppUpdates();
   </script>
 </body>
 </html>
