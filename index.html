@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>ITALIKA • Validación de Estructuras</title>
   <!-- PWA Meta tags e Iconos -->
   <link rel="manifest" href="manifest.json">
@@ -32,7 +32,14 @@
       --border: #E5E7EB;
     }
 
-    * {
+    html {
+      box-sizing: border-box;
+      -webkit-text-size-adjust: 100%;
+      width: 100%;
+      overflow-x: hidden;
+    }
+
+    *, *:before, *:after {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
@@ -42,21 +49,28 @@
 
     body {
       background-color: #121212;
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      min-height: 100vh;
+      min-height: 100dvh;
+      color: var(--text-dark);
+      overflow-x: hidden;
       display: flex;
       justify-content: center;
       align-items: center;
-      min-height: 100vh;
-      color: var(--text-dark);
     }
 
     .mobile-frame {
       width: 100%;
       max-width: 440px;
+      margin: 0 auto;
       height: 96vh;
       max-height: 900px;
       background: var(--bg);
       border-radius: 36px;
-      overflow: hidden;
+      overflow-x: hidden;
+      overflow-y: hidden;
       display: flex;
       flex-direction: column;
       box-shadow: 0 25px 60px rgba(0,0,0,0.6), 0 0 0 10px #2a2a2a;
@@ -64,33 +78,47 @@
     }
 
     @media (max-width: 500px) {
-      body { background: var(--bg); }
+      body {
+        background: var(--bg);
+        display: block; /* Elimina el flexbox centering bug que mocha el contenido a la izquierda */
+      }
       .mobile-frame {
         max-width: 100%;
+        width: 100%;
         height: 100vh;
-        max-height: 100vh;
+        height: 100dvh;
+        max-height: none;
         border-radius: 0;
         box-shadow: none;
+        margin: 0;
       }
     }
 
     .app-header {
       background: var(--primary);
       color: white;
-      padding: 16px 20px;
+      padding-top: max(14px, env(safe-area-inset-top));
+      padding-bottom: 12px;
+      padding-left: max(16px, env(safe-area-inset-left));
+      padding-right: max(16px, env(safe-area-inset-right));
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-shrink: 0;
+      width: 100%;
+      box-sizing: border-box;
+      gap: 8px;
     }
 
     .header-title {
-      font-size: 18px;
+      font-size: 17px;
       font-weight: 900;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       letter-spacing: 0.5px;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     .header-badge {
@@ -247,15 +275,18 @@
     }
 
     .form-container {
-      padding: 16px;
-      padding-bottom: 110px;
+      padding: 14px 14px;
+      padding-bottom: calc(105px + env(safe-area-inset-bottom, 16px));
+      width: 100%;
+      box-sizing: border-box;
+      overflow-x: hidden;
     }
 
     .form-section-title {
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 800;
       color: var(--text-dark);
-      margin: 14px 0 8px 0;
+      margin: 12px 0 6px 0;
     }
 
     .segmented-control {
@@ -264,18 +295,25 @@
       border-radius: 12px;
       padding: 3px;
       gap: 3px;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     .segment-btn {
       flex: 1;
-      padding: 8px 4px;
-      font-size: 12px;
+      min-width: 0;
+      padding: 8px 2px;
+      font-size: 11px;
       font-weight: 700;
       border: none;
       background: transparent;
       border-radius: 10px;
       cursor: pointer;
       color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: center;
     }
 
     .segment-btn.active {
@@ -288,33 +326,44 @@
       background: white;
       border-radius: 14px;
       border: 1px solid var(--border);
-      padding: 14px;
-      margin-top: 10px;
+      padding: 12px;
+      margin-top: 8px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     .input-group {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 3px;
+      min-width: 0;
+      flex: 1;
     }
 
     .input-label {
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 700;
       color: var(--text-dark);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .input-with-scan {
       display: flex;
       gap: 8px;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     .text-input {
-      flex: 1;
-      padding: 10px 12px;
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+      padding: 9px 10px;
       border-radius: 10px;
       border: 1px solid var(--border);
       font-size: 14px;
@@ -333,14 +382,15 @@
       color: white;
       border: none;
       border-radius: 10px;
-      padding: 0 14px;
+      padding: 0 12px;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
       font-weight: 700;
-      font-size: 13px;
+      font-size: 12px;
       cursor: pointer;
+      flex-shrink: 0;
     }
 
     .scan-full-btn {
@@ -348,18 +398,20 @@
       color: white;
       border: none;
       border-radius: 12px;
-      padding: 13px 16px;
+      padding: 12px 14px;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
+      gap: 8px;
       font-weight: 800;
-      font-size: 13px;
+      font-size: 12px;
       cursor: pointer;
       box-shadow: 0 4px 12px rgba(0,56,147,0.25);
       letter-spacing: 0.3px;
       transition: all 0.2s ease;
       margin-bottom: 2px;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     .scan-full-btn:active {
@@ -367,48 +419,69 @@
       background: var(--primary-dark);
     }
 
-    .scan-btn:active {
-      opacity: 0.9;
-    }
-
     .counter-card {
       background: white;
       border-radius: 14px;
       border: 1px solid var(--border);
-      padding: 12px 14px;
+      padding: 10px 12px;
       margin-bottom: 8px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 6px;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     .counter-card.has-value {
       border: 2px solid var(--primary);
     }
 
-    .st-info { display: flex; flex-direction: column; }
-    .st-name { font-size: 14px; font-weight: 800; color: var(--text-dark); }
-    .st-sub { font-size: 11px; color: var(--text-muted); }
+    .st-info {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .st-name {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--text-dark);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .st-sub {
+      font-size: 10px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
 
     .counter-actions {
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 3px;
+      flex-shrink: 0;
     }
 
     .btn-step {
-      width: 36px;
-      height: 36px;
+      width: 32px;
+      height: 32px;
       border-radius: 8px;
       border: none;
       background: #F3F4F6;
       color: #111827;
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 700;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-shrink: 0;
     }
 
     .btn-step.add {
@@ -417,18 +490,21 @@
     }
 
     .btn-step.jump {
-      width: 38px;
+      width: 34px;
+      height: 32px;
       background: white;
       border: 1px solid #D1D5DB;
       color: var(--primary);
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 800;
+      border-radius: 8px;
+      flex-shrink: 0;
     }
 
     .counter-value {
-      min-width: 38px;
+      min-width: 28px;
       text-align: center;
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 900;
       color: var(--primary);
     }
@@ -440,26 +516,29 @@
       right: 0;
       background: white;
       border-top: 1px solid var(--border);
-      padding: 12px 16px;
+      padding: 10px 16px max(14px, env(safe-area-inset-bottom)) 16px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       box-shadow: 0 -4px 16px rgba(0,0,0,0.06);
       z-index: 10;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     .bottom-total-lbl { font-size: 11px; font-weight: 700; color: var(--text-muted); }
-    .bottom-total-val { font-size: 24px; font-weight: 900; color: var(--primary); }
+    .bottom-total-val { font-size: 22px; font-weight: 900; color: var(--primary); }
 
     .btn-save {
       background: var(--primary);
       color: white;
       border: none;
       border-radius: 12px;
-      padding: 12px 22px;
-      font-size: 14px;
+      padding: 11px 18px;
+      font-size: 13px;
       font-weight: 800;
       cursor: pointer;
+      flex-shrink: 0;
     }
 
     /* Modal Escaner con Camara */
@@ -496,6 +575,7 @@
       align-items: center;
       justify-content: center;
       overflow: hidden;
+      contain: paint;
       background: #000;
       min-height: 280px;
     }
@@ -612,11 +692,11 @@
         </svg>
         ITALIKA
       </div>
-      <div style="display: flex; align-items: center; gap: 6px;">
-        <button onclick="openInstallModal()" style="color: white; border: none; font-size: 11px; background: #E50914; padding: 5px 9px; border-radius: 14px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 8px rgba(229,9,20,0.4);">
-          📲 Instalar App
+      <div style="display: flex; align-items: center; gap: 5px; flex-shrink: 0;">
+        <button onclick="openInstallModal()" style="color: white; border: none; font-size: 11px; background: #E50914; padding: 5px 8px; border-radius: 14px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 3px; box-shadow: 0 2px 8px rgba(229,9,20,0.4); white-space: nowrap; flex-shrink: 0;">
+          📲 App
         </button>
-        <a href="vacaciones.html" style="color: white; text-decoration: none; font-size: 11px; background: rgba(255,255,255,0.2); padding: 5px 8px; border-radius: 14px; font-weight: 700;">
+        <a href="vacaciones.html" style="color: white; text-decoration: none; font-size: 11px; background: rgba(255,255,255,0.2); padding: 5px 8px; border-radius: 14px; font-weight: 700; white-space: nowrap; flex-shrink: 0;">
           📊 Vacaciones
         </a>
       </div>
@@ -650,11 +730,11 @@
     <!-- PANTALLA 2: CAPTURA -->
     <div id="screenCapture" class="screen">
       <div class="form-container">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-          <button onclick="closeCaptureScreen()" style="background: none; border: none; font-size: 14px; font-weight: 700; color: var(--primary); cursor: pointer;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; width: 100%;">
+          <button onclick="closeCaptureScreen()" style="background: #EFF6FF; border: 1px solid #BFDBFE; font-size: 12px; font-weight: 800; color: var(--primary); cursor: pointer; padding: 6px 12px; border-radius: 20px; display: inline-flex; align-items: center; gap: 4px;">
             ← Volver
           </button>
-          <span style="font-size: 13px; font-weight: 700; color: var(--text-muted);" id="currentFolio">VAL-260922-1045</span>
+          <span style="font-size: 12px; font-weight: 800; color: var(--text-muted); background: #F3F4F6; padding: 5px 10px; border-radius: 8px;" id="currentFolio">VAL-260922-1045</span>
         </div>
 
         <div class="form-section-title">Tipo de Movimiento</div>
