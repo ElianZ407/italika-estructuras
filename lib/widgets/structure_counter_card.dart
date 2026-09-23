@@ -99,7 +99,7 @@ class StructureCounterCard extends StatelessWidget {
 
               // Indicador numérico
               Container(
-                constraints: const SizeBox(minWidth: 46),
+                constraints: const BoxConstraints(minWidth: 46),
                 alignment: Alignment.center,
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: Text(
