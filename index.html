@@ -4,6 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>ITALIKA • Validación de Estructuras</title>
+  <!-- PWA Meta tags e Iconos -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#003893">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Italika">
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <link rel="apple-touch-icon" href="icon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -603,11 +612,13 @@
         </svg>
         ITALIKA
       </div>
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <a href="vacaciones.html" style="color: white; text-decoration: none; font-size: 11px; background: rgba(255,255,255,0.25); padding: 5px 9px; border-radius: 14px; font-weight: 700;">
-          📊 Vacaciones Excel
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <button onclick="openInstallModal()" style="color: white; border: none; font-size: 11px; background: #E50914; padding: 5px 9px; border-radius: 14px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 8px rgba(229,9,20,0.4);">
+          📲 Instalar App
+        </button>
+        <a href="vacaciones.html" style="color: white; text-decoration: none; font-size: 11px; background: rgba(255,255,255,0.2); padding: 5px 8px; border-radius: 14px; font-weight: 700;">
+          📊 Vacaciones
         </a>
-        <span class="header-badge">Estructuras</span>
       </div>
     </header>
 
@@ -807,6 +818,56 @@
           <button class="demo-barcode-btn" onclick="processScannedBarcode('ECO: 1042 PLACA: LF5589')">
             ⚡ ECO: 1042 | PLACA: LF5589
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL INSTALACIÓN APP / DESCARGA APK -->
+    <div id="modalInstallApp" class="modal-overlay">
+      <div class="modal-header">
+        <span style="font-weight: 800; font-size: 15px;">📲 Instalar App ITALIKA</span>
+        <button onclick="closeInstallModal()" style="background: none; border: none; color: white; font-size: 24px; font-weight: bold; cursor: pointer; padding: 4px 10px;">✕</button>
+      </div>
+      <div style="padding: 20px; overflow-y: auto; max-height: calc(100vh - 120px); background: #18181B; color: #F3F4F6;">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <img src="icon.svg" style="width: 72px; height: 72px; border-radius: 18px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);" alt="Italika Icon">
+          <h3 style="margin-top: 12px; font-size: 17px; font-weight: 900; color: white;">App Validación de Estructuras</h3>
+          <p style="font-size: 12px; color: #9CA3AF; margin-top: 4px;">Instálala en tu celular para abrirla con 1 toque sin escribir la URL, en pantalla completa e incluso sin internet.</p>
+        </div>
+
+        <!-- Opción 1: Instalar en Pantalla de Inicio (PWA) -->
+        <div style="background: #27272A; border: 1px solid #3F3F46; border-radius: 14px; padding: 14px; margin-bottom: 14px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <span style="background: #003893; color: white; font-weight: 900; font-size: 11px; padding: 3px 8px; border-radius: 10px;">RECOMENDADO</span>
+            <strong style="font-size: 14px; color: white;">1. Instalar en el Celular (1 Clic)</strong>
+          </div>
+          <p style="font-size: 12px; color: #D4D4D8; margin-bottom: 12px; line-height: 1.4;">
+            Se instala de inmediato en tu pantalla de inicio con su icono propio de Italika. No requiere descargar archivos ni permisos de administrador. Compatible con Android y iPhone.
+          </p>
+          <button id="btnPwaPrompt" onclick="triggerPwaInstall()" style="width: 100%; background: #22C55E; color: #052E16; border: none; padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            ⚡ INSTALAR AHORA EN EL TELÉFONO
+          </button>
+          
+          <div id="iosInstallGuide" style="display: none; margin-top: 12px; padding: 10px; background: #1E293B; border-radius: 8px; font-size: 12px; color: #93C5FD; line-height: 1.5;">
+            <strong>Para iPhone (Safari):</strong><br>
+            1. Toca el botón <strong>Compartir</strong> <span style="font-size: 14px;">⎋</span> (abajo en Safari).<br>
+            2. Desliza hacia abajo y toca <strong>"Agregar al inicio ⊞"</strong>.<br>
+            3. Toca <strong>Agregar</strong> arriba a la derecha ¡y listo!
+          </div>
+        </div>
+
+        <!-- Opción 2: Descargar APK Android -->
+        <div style="background: #27272A; border: 1px solid #3F3F46; border-radius: 14px; padding: 14px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <span style="background: #059669; color: white; font-weight: 900; font-size: 11px; padding: 3px 8px; border-radius: 10px;">ANDROID</span>
+            <strong style="font-size: 14px; color: white;">2. Descargar instalador APK</strong>
+          </div>
+          <p style="font-size: 12px; color: #D4D4D8; margin-bottom: 12px; line-height: 1.4;">
+            Si prefieres el archivo ejecutable nativo de Android (.apk) para compartirlo por WhatsApp o instalarlo offline:
+          </p>
+          <a href="https://github.com/ElianZ407/italika-estructuras/releases" target="_blank" style="text-decoration: none; width: 100%; background: #003893; color: white; border: none; padding: 12px; border-radius: 10px; font-size: 13px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-sizing: border-box;">
+            ⬇️ Descargar APK (GitHub Releases)
+          </a>
         </div>
       </div>
     </div>
@@ -1328,6 +1389,63 @@
 
       showToast(`✓ Vale ${newRecord.folio} guardado`);
       closeCaptureScreen();
+    }
+
+    // ============================================
+    // LÓGICA DE INSTALACIÓN PWA Y DESCARGA
+    // ============================================
+    let deferredPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const btn = document.getElementById('btnPwaPrompt');
+      if (btn) btn.style.display = 'flex';
+    });
+
+    function openInstallModal() {
+      const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent.toLowerCase());
+      const guide = document.getElementById('iosInstallGuide');
+      const btnPrompt = document.getElementById('btnPwaPrompt');
+      if (isIos) {
+        if (guide) guide.style.display = 'block';
+        if (btnPrompt) btnPrompt.textContent = '📋 Ver pasos para iPhone';
+      }
+      document.getElementById('modalInstallApp').classList.add('active');
+    }
+
+    function closeInstallModal() {
+      document.getElementById('modalInstallApp').classList.remove('active');
+    }
+
+    async function triggerPwaInstall() {
+      const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent.toLowerCase());
+      if (isIos) {
+        alert('En iPhone: Pulsa el botón "Compartir" (⎋) abajo en Safari y selecciona "Agregar al inicio ⊞".');
+        return;
+      }
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          showToast('✓ ¡App instalada con éxito!');
+          closeInstallModal();
+        }
+        deferredPrompt = null;
+      } else {
+        alert('Para instalar: Toca el menú de opciones (tres puntos ⋮) de tu navegador y selecciona "Instalar aplicación" o "Agregar a pantalla principal".');
+      }
+    }
+
+    // Registrar Service Worker para soporte PWA y modo Offline
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then(() => {
+          console.log('PWA ServiceWorker registrado');
+        }).catch(err => {
+          console.log('SW error:', err);
+        });
+      });
     }
   </script>
 </body>

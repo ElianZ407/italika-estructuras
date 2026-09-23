@@ -5,6 +5,9 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -25,7 +28,7 @@ jobs:
           cache: true
 
       - name: Generate native platform scaffolding
-        run: flutter create . --platforms=android --org=com.italika
+        run: flutter create . --project-name=italika_estructuras --platforms=android --org=com.italika
 
       - name: Install dependencies
         run: flutter pub get
@@ -33,8 +36,22 @@ jobs:
       - name: Build APK (Release)
         run: flutter build apk --release
 
-      - name: Upload APK
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Italika-Estructuras-Release-APK
           path: build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Publish Release with APK
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0
+          name: Italika Estructuras v1.0.0 (APK Android)
+          body: |
+            📲 **Descarga directa de la App Android**:
+            - Guarda el archivo `app-release.apk` en tu teléfono e instálalo directamente.
+            - Funciona 100% offline sin necesidad de navegador.
+          files: build/app/outputs/flutter-apk/app-release.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,19 @@
+{
+  "name": "ITALIKA • Validación de Estructuras",
+  "short_name": "Italika",
+  "description": "App para control y conteo de estructuras en andén y contenedores Italika",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#003893",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

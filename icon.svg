@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#003893" />
+      <stop offset="100%" stop-color="#001F52" />
+    </linearGradient>
+    <linearGradient id="redGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF1E27" />
+      <stop offset="100%" stop-color="#B80007" />
+    </linearGradient>
+  </defs>
+  <!-- Background with rounded squircles -->
+  <rect width="512" height="512" rx="110" fill="url(#bgGrad)" />
+  
+  <!-- Subtle accent ring -->
+  <rect x="16" y="16" width="480" height="480" rx="98" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="6" />
+
+  <!-- Isometric Structure / Box Icon -->
+  <g transform="translate(256, 210)">
+    <!-- Top Face -->
+    <polygon points="0,-90 120,-25 0,40 -120,-25" fill="#FFFFFF" opacity="0.95" />
+    <!-- Left Face -->
+    <polygon points="-120,-25 0,40 0,160 -120,95" fill="#D1D5DB" />
+    <!-- Right Face -->
+    <polygon points="120,-25 0,40 0,160 120,95" fill="#9CA3AF" />
+    
+    <!-- Structure Grid Lines -->
+    <line x1="-60" y1="7" x2="-60" y2="127" stroke="#003893" stroke-width="8" stroke-linecap="round" />
+    <line x1="60" y1="7" x2="60" y2="127" stroke="#003893" stroke-width="8" stroke-linecap="round" />
+    <line x1="0" y1="40" x2="0" y2="160" stroke="#001F52" stroke-width="8" />
+  </g>
+
+  <!-- Red Accent Chevron / Speed Badge -->
+  <path d="M 170 380 L 256 425 L 342 380 L 322 360 L 256 395 L 190 360 Z" fill="url(#redGrad)" />
+
+  <!-- ITALIKA Text -->
+  <text x="256" y="470" text-anchor="middle" font-family="'Inter', sans-serif" font-weight="900" font-size="44" fill="#FFFFFF" letter-spacing="4">
+    ITALIKA
+  </text>
+</svg>
