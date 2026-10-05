@@ -6,7 +6,8 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>ITALIKA • Validación de Estructuras</title>
+  <title>ITALIKA • Validación y Control de Estructuras</title>
+  
   <!-- PWA Meta tags e Iconos -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#003893">
@@ -16,13 +17,21 @@
   <meta name="apple-mobile-web-app-title" content="Italika">
   <link rel="icon" type="image/svg+xml" href="icon.svg">
   <link rel="apple-touch-icon" href="icon.svg">
+  
+  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <!-- Librería Quagga2 especializada en decodificación de Code-128, Code-39 y EAN-13 en cámaras web -->
+  
+  <!-- Librería jsPDF para generación de reportes y vales en PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+  <!-- Librería Quagga2 especializada en decodificación de códigos 1D (Code-128, Code-39) -->
   <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2/dist/quagga.min.js"></script>
-  <!-- Librería ZXing para soporte de QR y fallback -->
+  <!-- Librería ZXing para soporte QR y fallback -->
   <script src="https://unpkg.com/@zxing/library@0.23.0/umd/index.min.js"></script>
+
   <style>
     :root {
       --primary: #003893;
@@ -33,13 +42,10 @@
       --text-dark: #111827;
       --text-muted: #6B7280;
       --border: #E5E7EB;
-    }
-
-    html {
-      box-sizing: border-box;
-      -webkit-text-size-adjust: 100%;
-      width: 100%;
-      overflow-x: hidden;
+      --success: #15803D;
+      --success-bg: #DCFCE7;
+      --warning: #B45309;
+      --warning-bg: #FEF3C7;
     }
 
     *, *:before, *:after {
@@ -50,8 +56,15 @@
       -webkit-tap-highlight-color: transparent;
     }
 
+    html {
+      box-sizing: border-box;
+      -webkit-text-size-adjust: 100%;
+      width: 100%;
+      overflow-x: hidden;
+    }
+
     body {
-      background-color: #121212;
+      background-color: #0F172A;
       margin: 0;
       padding: 0;
       width: 100%;
@@ -66,24 +79,23 @@
 
     .mobile-frame {
       width: 100%;
-      max-width: 440px;
+      max-width: 540px;
       margin: 0 auto;
-      height: 96vh;
-      max-height: 900px;
+      height: 98vh;
+      max-height: 960px;
       background: var(--bg);
-      border-radius: 36px;
-      overflow-x: hidden;
-      overflow-y: hidden;
+      border-radius: 28px;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
-      box-shadow: 0 25px 60px rgba(0,0,0,0.6), 0 0 0 10px #2a2a2a;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1);
       position: relative;
     }
 
-    @media (max-width: 500px) {
+    @media (max-width: 600px) {
       body {
         background: var(--bg);
-        display: block; /* Elimina el flexbox centering bug que mocha el contenido a la izquierda */
+        display: block;
       }
       .mobile-frame {
         max-width: 100%;
@@ -97,6 +109,7 @@
       }
     }
 
+    /* HEADER */
     .app-header {
       background: var(--primary);
       color: white;
@@ -111,6 +124,8 @@
       width: 100%;
       box-sizing: border-box;
       gap: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 20;
     }
 
     .header-title {
@@ -132,89 +147,261 @@
       font-weight: 700;
     }
 
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .icon-btn {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: white;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+    }
+
+    .icon-btn:active {
+      transform: scale(0.92);
+      background: rgba(255,255,255,0.3);
+    }
+
+    .btn-install {
+      color: white;
+      border: none;
+      font-size: 11px;
+      background: var(--accent);
+      padding: 6px 10px;
+      border-radius: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 2px 8px rgba(229,9,20,0.4);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* PANTALLAS */
     .screen {
       flex: 1;
       overflow-y: auto;
       display: none;
       flex-direction: column;
+      position: relative;
     }
 
     .screen.active {
       display: flex;
     }
 
+    /* MÉTRICAS */
     .metrics-bar {
       background: var(--primary);
       color: white;
-      padding: 0 20px 18px 20px;
+      padding: 6px 16px 16px 16px;
       display: flex;
       justify-content: space-around;
       border-radius: 0 0 20px 20px;
-      box-shadow: 0 4px 12px rgba(0,56,147,0.2);
+      box-shadow: 0 4px 12px rgba(0,56,147,0.25);
+      flex-shrink: 0;
     }
 
     .metric-item { text-align: center; }
-    .metric-val { font-size: 22px; font-weight: 900; }
-    .metric-lbl { font-size: 11px; opacity: 0.85; }
-    .metrics-divider { width: 1px; background: rgba(255,255,255,0.25); }
+    .metric-val { font-size: 22px; font-weight: 900; line-height: 1.2; }
+    .metric-lbl { font-size: 11px; opacity: 0.85; font-weight: 500; }
+    .metrics-divider { width: 1px; background: rgba(255,255,255,0.2); }
 
-    .records-container {
-      padding: 14px;
+    /* BARRA DE HERRAMIENTAS Y BÚSQUEDA */
+    .toolbar-container {
+      padding: 12px 14px 6px 14px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      padding-bottom: 90px;
+      gap: 10px;
+      background: var(--bg);
+      flex-shrink: 0;
+    }
+
+    .search-input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      width: 100%;
+    }
+
+    .search-input {
+      width: 100%;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 14px 10px 38px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-dark);
+      outline: none;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+      transition: all 0.2s ease;
+    }
+
+    .search-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(0,56,147,0.15);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      color: #9CA3AF;
+      pointer-events: none;
+    }
+
+    .actions-row {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+
+    .btn-action-tool {
+      background: white;
+      color: #374151;
+      border: 1px solid #D1D5DB;
+      border-radius: 10px;
+      padding: 7px 11px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: all 0.2s;
+    }
+
+    .btn-action-tool:hover {
+      background: #F9FAFB;
+      border-color: #9CA3AF;
+    }
+
+    .btn-action-tool.primary {
+      background: #EFF6FF;
+      color: var(--primary);
+      border-color: #BFDBFE;
+    }
+
+    .btn-action-tool.accent {
+      background: #FEF2F2;
+      color: #DC2626;
+      border-color: #FECACA;
+    }
+
+    /* FILTROS POR CHIPS */
+    .filter-chips {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 0 14px 6px 14px;
+      -webkit-overflow-scrolling: touch;
+      flex-shrink: 0;
+    }
+
+    .filter-chip {
+      background: #E5E7EB;
+      color: #4B5563;
+      border: none;
+      border-radius: 16px;
+      padding: 5px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .filter-chip.active {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 2px 6px rgba(0,56,147,0.25);
+    }
+
+    /* LISTA DE REGISTROS */
+    .records-container {
+      padding: 4px 14px 100px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
 
     .record-card {
       background: white;
       border-radius: 14px;
-      padding: 14px;
+      padding: 12px 14px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.04);
       border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .record-card:hover {
+      border-color: #CBD5E1;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
     }
 
     .record-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 6px;
     }
 
     .record-folio {
       font-size: 14px;
       font-weight: 800;
-      color: var(--text-dark);
+      color: var(--primary);
+      letter-spacing: 0.3px;
     }
 
     .badge-mov {
       font-size: 11px;
-      font-weight: 700;
+      font-weight: 800;
       padding: 3px 8px;
       border-radius: 20px;
     }
 
-    .mov-entrada { background: #DCFCE7; color: #15803D; }
+    .mov-entrada { background: var(--success-bg); color: var(--success); }
     .mov-salida { background: #DBEAFE; color: #1D4ED8; }
-    .mov-retorno { background: #FFEDD5; color: #C2410C; }
+    .mov-retorno { background: var(--warning-bg); color: var(--warning); }
 
-    .record-date {
-      font-size: 12px;
+    .record-date-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
       color: var(--text-muted);
-      margin-bottom: 8px;
     }
 
     .record-chips {
       display: flex;
-      gap: 10px;
-      margin-bottom: 10px;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
     .chip-info {
-      background: #F3F4F6;
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
       padding: 4px 8px;
-      border-radius: 6px;
-      font-size: 12px;
+      border-radius: 8px;
+      font-size: 11px;
       color: var(--text-dark);
     }
 
@@ -225,8 +412,7 @@
     .structures-pills {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 10px;
+      gap: 5px;
     }
 
     .pill-st {
@@ -235,7 +421,7 @@
       border: 1px solid #BFDBFE;
       font-size: 11px;
       font-weight: 700;
-      padding: 3px 8px;
+      padding: 3px 7px;
       border-radius: 6px;
     }
 
@@ -253,43 +439,131 @@
       color: var(--primary);
     }
 
+    .record-actions-btns {
+      display: flex;
+      gap: 6px;
+    }
+
+    .btn-card-action {
+      background: #F1F5F9;
+      border: 1px solid #E2E8F0;
+      color: #334155;
+      padding: 5px 8px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s;
+    }
+
+    .btn-card-action:hover {
+      background: #E2E8F0;
+    }
+
+    .btn-card-action.pdf {
+      background: #EFF6FF;
+      color: #1D4ED8;
+      border-color: #BFDBFE;
+    }
+
+    .btn-card-action.wa {
+      background: #ECFDF5;
+      color: #047857;
+      border-color: #A7F3D0;
+    }
+
+    .btn-card-action.edit {
+      background: #FEF3C7;
+      color: #B45309;
+      border-color: #FDE68A;
+    }
+
+    .btn-card-action.del {
+      background: #FEF2F2;
+      color: #DC2626;
+      border-color: #FECACA;
+    }
+
+    /* BOTÓN FLOTANTE (FAB) */
     .fab-btn {
       position: absolute;
-      bottom: 24px;
+      bottom: max(24px, env(safe-area-inset-bottom, 24px));
       left: 50%;
       transform: translateX(-50%);
       background: var(--accent);
       color: white;
       border: none;
       border-radius: 30px;
-      padding: 14px 28px;
-      font-size: 14px;
+      padding: 13px 26px;
+      font-size: 13px;
       font-weight: 800;
       box-shadow: 0 10px 25px rgba(229, 9, 20, 0.4);
       cursor: pointer;
       display: flex;
       align-items: center;
       gap: 8px;
-      z-index: 10;
+      z-index: 15;
+      white-space: nowrap;
+      letter-spacing: 0.3px;
+      transition: all 0.2s ease;
     }
 
     .fab-btn:active {
       transform: translateX(-50%) scale(0.96);
     }
 
+    /* PANTALLA CAPTURA / FORMULARIO */
     .form-container {
       padding: 14px 14px;
-      padding-bottom: calc(105px + env(safe-area-inset-bottom, 16px));
+      padding-bottom: calc(115px + env(safe-area-inset-bottom, 16px));
       width: 100%;
       box-sizing: border-box;
       overflow-x: hidden;
     }
 
+    .form-header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      width: 100%;
+    }
+
+    .btn-back {
+      background: #EFF6FF;
+      border: 1px solid #BFDBFE;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--primary);
+      cursor: pointer;
+      padding: 7px 14px;
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .folio-tag {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text-dark);
+      background: white;
+      border: 1px solid var(--border);
+      padding: 6px 12px;
+      border-radius: 10px;
+    }
+
     .form-section-title {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 800;
       color: var(--text-dark);
       margin: 12px 0 6px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
 
     .segmented-control {
@@ -305,7 +579,7 @@
     .segment-btn {
       flex: 1;
       min-width: 0;
-      padding: 8px 2px;
+      padding: 8px 4px;
       font-size: 11px;
       font-weight: 700;
       border: none;
@@ -314,8 +588,6 @@
       cursor: pointer;
       color: var(--text-muted);
       white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
       text-align: center;
     }
 
@@ -330,7 +602,7 @@
       border-radius: 14px;
       border: 1px solid var(--border);
       padding: 12px;
-      margin-top: 8px;
+      margin-top: 6px;
       display: flex;
       flex-direction: column;
       gap: 10px;
@@ -350,50 +622,24 @@
       font-size: 11px;
       font-weight: 700;
       color: var(--text-dark);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .input-with-scan {
-      display: flex;
-      gap: 8px;
-      width: 100%;
-      box-sizing: border-box;
     }
 
     .text-input {
       width: 100%;
-      min-width: 0;
       box-sizing: border-box;
-      padding: 9px 10px;
+      padding: 10px 12px;
       border-radius: 10px;
       border: 1px solid var(--border);
       font-size: 14px;
       background: #FAFAFA;
       font-weight: 600;
+      outline: none;
     }
 
     .text-input:focus {
-      outline: none;
       border-color: var(--primary);
       background: white;
-    }
-
-    .scan-btn {
-      background: #003893;
-      color: white;
-      border: none;
-      border-radius: 10px;
-      padding: 0 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      font-weight: 700;
-      font-size: 12px;
-      cursor: pointer;
-      flex-shrink: 0;
+      box-shadow: 0 0 0 3px rgba(0,56,147,0.1);
     }
 
     .scan-full-btn {
@@ -407,12 +653,10 @@
       justify-content: center;
       gap: 8px;
       font-weight: 800;
-      font-size: 12px;
+      font-size: 13px;
       cursor: pointer;
       box-shadow: 0 4px 12px rgba(0,56,147,0.25);
       letter-spacing: 0.3px;
-      transition: all 0.2s ease;
-      margin-bottom: 2px;
       width: 100%;
       box-sizing: border-box;
     }
@@ -422,6 +666,7 @@
       background: var(--primary-dark);
     }
 
+    /* TARJETAS DE CONTEO */
     .counter-card {
       background: white;
       border-radius: 14px;
@@ -431,13 +676,15 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 6px;
+      gap: 8px;
       width: 100%;
       box-sizing: border-box;
+      transition: all 0.2s;
     }
 
     .counter-card.has-value {
       border: 2px solid var(--primary);
+      background: #FAFBFF;
     }
 
     .st-info {
@@ -451,23 +698,17 @@
       font-size: 13px;
       font-weight: 800;
       color: var(--text-dark);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
 
     .st-sub {
       font-size: 10px;
       color: var(--text-muted);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
 
     .counter-actions {
       display: flex;
       align-items: center;
-      gap: 3px;
+      gap: 4px;
       flex-shrink: 0;
     }
 
@@ -479,7 +720,7 @@
       background: #F3F4F6;
       color: #111827;
       font-size: 16px;
-      font-weight: 700;
+      font-weight: 800;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -504,14 +745,34 @@
       flex-shrink: 0;
     }
 
-    .counter-value {
-      min-width: 28px;
+    /* INPUT NUMÉRICO DIRECTO EN CONTEO */
+    .counter-input {
+      width: 44px;
+      height: 32px;
       text-align: center;
       font-size: 16px;
       font-weight: 900;
       color: var(--primary);
+      border: 1px solid #CBD5E1;
+      border-radius: 8px;
+      background: white;
+      padding: 0;
+      -moz-appearance: textfield;
+      outline: none;
     }
 
+    .counter-input::-webkit-outer-spin-button,
+    .counter-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .counter-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(0,56,147,0.2);
+    }
+
+    /* BARRA INFERIOR DE TOTAL Y GUARDADO */
     .bottom-bar {
       position: absolute;
       bottom: 0;
@@ -519,7 +780,7 @@
       right: 0;
       background: white;
       border-top: 1px solid var(--border);
-      padding: 10px 16px max(14px, env(safe-area-inset-bottom)) 16px;
+      padding: 10px 16px max(14px, env(safe-area-inset-bottom, 14px)) 16px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -530,21 +791,27 @@
     }
 
     .bottom-total-lbl { font-size: 11px; font-weight: 700; color: var(--text-muted); }
-    .bottom-total-val { font-size: 22px; font-weight: 900; color: var(--primary); }
+    .bottom-total-val { font-size: 24px; font-weight: 900; color: var(--primary); }
 
     .btn-save {
       background: var(--primary);
       color: white;
       border: none;
       border-radius: 12px;
-      padding: 11px 18px;
+      padding: 12px 20px;
       font-size: 13px;
       font-weight: 800;
       cursor: pointer;
       flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(0,56,147,0.25);
     }
 
-    /* Modal Escaner con Camara */
+    .btn-save:active {
+      transform: scale(0.98);
+      background: var(--primary-dark);
+    }
+
+    /* MODALES */
     .modal-overlay {
       position: absolute;
       top: 0;
@@ -563,12 +830,13 @@
     }
 
     .modal-header {
-      padding: 16px;
+      padding: 14px 16px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: rgba(0,0,0,0.9);
+      background: rgba(0,0,0,0.92);
       z-index: 2;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
     }
 
     .scanner-view {
@@ -596,7 +864,7 @@
       display: none !important;
     }
 
-    /* ÚNICO retículo verde Italika con sombra perimetral (sin recuadros grises) */
+    /* RETÍCULO VERDE CON LÁSER */
     .scanner-reticle {
       position: absolute;
       width: 84%;
@@ -641,7 +909,21 @@
       font-weight: 500;
     }
 
-    /* Toast alerta */
+    .btn-torch {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* TOAST ALERTA */
     .toast {
       position: absolute;
       top: 20px;
@@ -667,7 +949,7 @@
   <div class="mobile-frame">
     <div id="appToast" class="toast"></div>
 
-    <!-- Header -->
+    <!-- HEADER SUPERIOR -->
     <header class="app-header">
       <div class="header-title">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -677,19 +959,22 @@
         </svg>
         ITALIKA
       </div>
-      <div style="display: flex; align-items: center; gap: 8px;">
+      <div class="header-actions">
         <span class="header-badge">Estructuras</span>
-        <button onclick="forceAppRefresh()" title="Comprobar y aplicar actualizaciones" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 50%; width: 28px; height: 28px; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;" aria-label="Actualizar">
+        <button onclick="forceAppRefresh()" title="Comprobar y aplicar actualizaciones" class="icon-btn" aria-label="Actualizar">
           🔄
         </button>
-        <button onclick="openInstallModal()" style="color: white; border: none; font-size: 11px; background: #E50914; padding: 5px 10px; border-radius: 14px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 8px rgba(229,9,20,0.4); white-space: nowrap; flex-shrink: 0;">
-          📲 Instalar App
+        <button onclick="openInstallModal()" class="btn-install">
+          📲 App
         </button>
       </div>
     </header>
 
-    <!-- PANTALLA 1: HISTORIAL -->
+    <!-- ============================================ -->
+    <!-- PANTALLA 1: HISTORIAL DE VALES Y REPORTES   -->
+    <!-- ============================================ -->
     <div id="screenHome" class="screen active">
+      <!-- Tarjetas de Métricas -->
       <div class="metrics-bar">
         <div class="metric-item">
           <div id="metricValesCount" class="metric-val">0</div>
@@ -702,8 +987,41 @@
         </div>
       </div>
 
+      <!-- Barra de Búsqueda y Exportación -->
+      <div class="toolbar-container">
+        <div class="search-input-wrapper">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="searchInput" class="search-input" placeholder="Buscar por folio, eco, placa, chofer..." oninput="handleSearchInput(this.value)">
+        </div>
+
+        <div class="actions-row">
+          <button class="btn-action-tool primary" onclick="exportAllToPdf()">
+            📑 Exportar PDF
+          </button>
+          <button class="btn-action-tool" onclick="exportAllToExcel()">
+            📊 Exportar Excel (CSV)
+          </button>
+          <button class="btn-action-tool accent" onclick="clearAllRecordsConfirm()">
+            🗑️ Vaciar Historial
+          </button>
+        </div>
+      </div>
+
+      <!-- Filtro por Tipo de Movimiento -->
+      <div class="filter-chips">
+        <button class="filter-chip active" onclick="setFilterMovimiento('TODOS', this)">Todos</button>
+        <button class="filter-chip" onclick="setFilterMovimiento('Entrada Contenedor', this)">Entradas</button>
+        <button class="filter-chip" onclick="setFilterMovimiento('Salida', this)">Salidas</button>
+        <button class="filter-chip" onclick="setFilterMovimiento('Retorno a CEDIS', this)">Retornos</button>
+      </div>
+
+      <!-- Lista de Tarjetas de Vales -->
       <div id="recordsList" class="records-container"></div>
 
+      <!-- Botón Flotante para Nuevo Registro -->
       <button class="fab-btn" onclick="openCaptureScreen()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
           <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -713,14 +1031,17 @@
       </button>
     </div>
 
-    <!-- PANTALLA 2: CAPTURA -->
+    <!-- ============================================ -->
+    <!-- PANTALLA 2: CAPTURA / EDICIÓN DE VALE       -->
+    <!-- ============================================ -->
     <div id="screenCapture" class="screen">
       <div class="form-container">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; width: 100%;">
-          <button onclick="closeCaptureScreen()" style="background: #EFF6FF; border: 1px solid #BFDBFE; font-size: 12px; font-weight: 800; color: var(--primary); cursor: pointer; padding: 6px 12px; border-radius: 20px; display: inline-flex; align-items: center; gap: 4px;">
+        <!-- Barra de estado superior del formulario -->
+        <div class="form-header-bar">
+          <button onclick="closeCaptureScreen()" class="btn-back">
             ← Volver
           </button>
-          <span style="font-size: 12px; font-weight: 800; color: var(--text-muted); background: #F3F4F6; padding: 5px 10px; border-radius: 8px;" id="currentFolio">VAL-260922-1045</span>
+          <span class="folio-tag" id="currentFolio">VAL-261005-0810</span>
         </div>
 
         <div class="form-section-title">Tipo de Movimiento</div>
@@ -730,11 +1051,11 @@
           <button class="segment-btn" onclick="setMovimiento('Retorno a CEDIS', this)">Retorno</button>
         </div>
 
-        <div class="form-section-title">Datos de la Unidad</div>
+        <div class="form-section-title">Datos de la Unidad y Transporte</div>
         <div class="unit-card">
-          <!-- Un solo botón de escaneo -->
+          <!-- Botón de Escaneo Único Inteligente -->
           <button class="scan-full-btn" onclick="startScanner('both', 'Código de Unidad')">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
               <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
               <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
@@ -744,7 +1065,7 @@
             📷 ESCANEAR CÓDIGO DE UNIDAD
           </button>
 
-          <!-- Económico y Placa (se llenan solos) -->
+          <!-- Económico y Placa (detección y llenado automático) -->
           <div style="display: flex; gap: 8px;">
             <div class="input-group" style="flex: 1;">
               <label class="input-label">Económico de la Unidad</label>
@@ -769,12 +1090,15 @@
 
           <div class="input-group">
             <label class="input-label">Operador / Transportista</label>
-            <input type="text" id="inputOperador" class="text-input" placeholder="Nombre del chofer">
+            <input type="text" id="inputOperador" class="text-input" placeholder="Nombre completo del chofer">
           </div>
         </div>
 
-        <!-- 5 Contadores -->
-        <div class="form-section-title">Conteo de Estructuras</div>
+        <!-- 5 Contadores con Entrada Numérica Directa -->
+        <div class="form-section-title">
+          <span>Conteo de Estructuras</span>
+          <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">Toca el número para escribir directo</span>
+        </div>
 
         <div class="counter-card" id="card_abatibles">
           <div class="st-info">
@@ -783,9 +1107,10 @@
           </div>
           <div class="counter-actions">
             <button class="btn-step" onclick="updateCount('abatibles', -1)">-</button>
-            <div class="counter-value" id="val_abatibles">0</div>
+            <input type="number" id="val_abatibles" class="counter-input" value="0" min="0" oninput="setManualCount('abatibles', this.value)" onfocus="this.select()">
             <button class="btn-step add" onclick="updateCount('abatibles', 1)">+</button>
             <button class="btn-step jump" onclick="updateCount('abatibles', 5)">+5</button>
+            <button class="btn-step jump" onclick="updateCount('abatibles', 10)">+10</button>
           </div>
         </div>
 
@@ -796,9 +1121,10 @@
           </div>
           <div class="counter-actions">
             <button class="btn-step" onclick="updateCount('normales', -1)">-</button>
-            <div class="counter-value" id="val_normales">0</div>
+            <input type="number" id="val_normales" class="counter-input" value="0" min="0" oninput="setManualCount('normales', this.value)" onfocus="this.select()">
             <button class="btn-step add" onclick="updateCount('normales', 1)">+</button>
             <button class="btn-step jump" onclick="updateCount('normales', 5)">+5</button>
+            <button class="btn-step jump" onclick="updateCount('normales', 10)">+10</button>
           </div>
         </div>
 
@@ -809,9 +1135,10 @@
           </div>
           <div class="counter-actions">
             <button class="btn-step" onclick="updateCount('atvNormal', -1)">-</button>
-            <div class="counter-value" id="val_atvNormal">0</div>
+            <input type="number" id="val_atvNormal" class="counter-input" value="0" min="0" oninput="setManualCount('atvNormal', this.value)" onfocus="this.select()">
             <button class="btn-step add" onclick="updateCount('atvNormal', 1)">+</button>
             <button class="btn-step jump" onclick="updateCount('atvNormal', 5)">+5</button>
+            <button class="btn-step jump" onclick="updateCount('atvNormal', 10)">+10</button>
           </div>
         </div>
 
@@ -822,9 +1149,10 @@
           </div>
           <div class="counter-actions">
             <button class="btn-step" onclick="updateCount('atvAbatible', -1)">-</button>
-            <div class="counter-value" id="val_atvAbatible">0</div>
+            <input type="number" id="val_atvAbatible" class="counter-input" value="0" min="0" oninput="setManualCount('atvAbatible', this.value)" onfocus="this.select()">
             <button class="btn-step add" onclick="updateCount('atvAbatible', 1)">+</button>
             <button class="btn-step jump" onclick="updateCount('atvAbatible', 5)">+5</button>
+            <button class="btn-step jump" onclick="updateCount('atvAbatible', 10)">+10</button>
           </div>
         </div>
 
@@ -835,33 +1163,41 @@
           </div>
           <div class="counter-actions">
             <button class="btn-step" onclick="updateCount('cartonMadera', -1)">-</button>
-            <div class="counter-value" id="val_cartonMadera">0</div>
+            <input type="number" id="val_cartonMadera" class="counter-input" value="0" min="0" oninput="setManualCount('cartonMadera', this.value)" onfocus="this.select()">
             <button class="btn-step add" onclick="updateCount('cartonMadera', 1)">+</button>
             <button class="btn-step jump" onclick="updateCount('cartonMadera', 5)">+5</button>
+            <button class="btn-step jump" onclick="updateCount('cartonMadera', 10)">+10</button>
           </div>
         </div>
       </div>
 
+      <!-- Barra Inferior de Total y Guardado -->
       <div class="bottom-bar">
         <div>
           <div class="bottom-total-lbl">TOTAL ESTRUCTURAS</div>
           <div class="bottom-total-val" id="bottomTotalVal">0</div>
         </div>
-        <button class="btn-save" onclick="saveCurrentRecord()">
+        <button class="btn-save" id="btnSaveRecord" onclick="saveCurrentRecord()">
           ✓ Guardar Registro
         </button>
       </div>
     </div>
 
-    <!-- MODAL ESCÁNER INTELIGENTE CON CÁMARA (Code-128 / QR / BarcodeDetector) -->
+    <!-- ============================================ -->
+    <!-- MODAL ESCÁNER INTELIGENTE CON CÁMARA        -->
+    <!-- ============================================ -->
     <div id="modalScanner" class="modal-overlay">
       <div class="modal-header">
         <span id="scannerTargetTitle" style="font-weight: 700; font-size: 15px;">Escanear Código de Barras / QR</span>
-        <button onclick="stopScanner()" style="background: none; border: none; color: white; font-size: 24px; font-weight: bold; cursor: pointer; padding: 4px 10px;">✕</button>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <button id="btnScannerTorch" class="btn-torch" onclick="toggleScannerTorch()">
+            🔦 Flash
+          </button>
+          <button onclick="stopScanner()" style="background: none; border: none; color: white; font-size: 24px; font-weight: bold; cursor: pointer; padding: 4px 10px;">✕</button>
+        </div>
       </div>
 
       <div class="scanner-view" id="scannerViewport">
-        <!-- Único retículo verde con láser (sin ningún recuadro gris secundario) -->
         <div class="scanner-reticle">
           <div class="scanner-laser"></div>
         </div>
@@ -874,7 +1210,9 @@
       </div>
     </div>
 
-    <!-- MODAL INSTALACIÓN APP / DESCARGA APK -->
+    <!-- ============================================ -->
+    <!-- MODAL INSTALACIÓN APP / DESCARGA APK        -->
+    <!-- ============================================ -->
     <div id="modalInstallApp" class="modal-overlay">
       <div class="modal-header">
         <span style="font-weight: 800; font-size: 15px;">📲 Instalar App ITALIKA</span>
@@ -926,7 +1264,7 @@
         <div style="margin-top: 14px; background: #27272A; border: 1px solid #3F3F46; border-radius: 14px; padding: 14px;">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
             <strong style="font-size: 13px; color: white;">🔄 Actualizaciones de la App</strong>
-            <span style="font-size: 11px; color: #22C55E; font-weight: 800;" id="appVersionBadge">v2026.09.23</span>
+            <span style="font-size: 11px; color: #22C55E; font-weight: 800;" id="appVersionBadge">v2026.10.05</span>
           </div>
           <p style="font-size: 12px; color: #D4D4D8; margin-bottom: 10px; line-height: 1.4;">
             La app se actualiza automáticamente al detectar cambios. Si no ves las últimas modificaciones, pulsa el botón para forzar la actualización y limpiar la caché.
@@ -940,11 +1278,19 @@
   </div>
 
   <script>
+    // ============================================
+    // ESTADO DE LA APLICACIÓN
+    // ============================================
     let currentMovimiento = 'Entrada Contenedor';
     let currentTargetInputId = '';
-    let quaggaRunning = false;
-    let codeReader = null;
+    let currentStream = null;
     let isScanningActive = false;
+    let isTorchOn = false;
+    let torchSupported = false;
+    let codeReader = null;
+    let editingRecordId = null;
+    let currentFilterMovimiento = 'TODOS';
+    let currentSearchQuery = '';
 
     const counts = {
       abatibles: 0,
@@ -958,7 +1304,7 @@
       const toast = document.getElementById('appToast');
       toast.textContent = text;
       toast.style.display = 'block';
-      setTimeout(() => { toast.style.display = 'none'; }, 3000);
+      setTimeout(() => { toast.style.display = 'none'; }, 3200);
     }
 
     function getStoredRecords() {
@@ -995,27 +1341,50 @@
       renderRecords();
     });
 
+    // ============================================
+    // RENDERIZADO DEL HISTORIAL CON FILTROS Y BÚSQUEDA
+    // ============================================
     function renderRecords() {
-      const records = getStoredRecords();
+      const allRecords = getStoredRecords();
       const listContainer = document.getElementById('recordsList');
       
       let totalAll = 0;
-      records.forEach(r => totalAll += (r.totalEstructuras || 0));
+      allRecords.forEach(r => totalAll += (r.totalEstructuras || 0));
 
-      document.getElementById('metricValesCount').textContent = records.length;
+      document.getElementById('metricValesCount').textContent = allRecords.length;
       document.getElementById('metricTotalEstructuras').textContent = totalAll;
 
-      if (records.length === 0) {
+      // Filtrado por Movimiento y Búsqueda
+      let filtered = allRecords.filter(r => {
+        if (currentFilterMovimiento !== 'TODOS' && r.tipoMovimiento !== currentFilterMovimiento) {
+          return false;
+        }
+        if (currentSearchQuery) {
+          const matchQuery = [
+            r.folio,
+            r.economico,
+            r.placa,
+            r.numeroCarga,
+            r.destino,
+            r.operador,
+            r.tipoMovimiento
+          ].some(field => field && field.toLowerCase().includes(currentSearchQuery));
+          if (!matchQuery) return false;
+        }
+        return true;
+      });
+
+      if (filtered.length === 0) {
         listContainer.innerHTML = `
           <div style="text-align: center; padding: 40px 20px; color: #9CA3AF;">
-            <p style="font-weight: 700; font-size: 15px; margin-bottom: 4px;">No hay registros aún</p>
-            <p style="font-size: 13px;">Presiona 'NUEVO REGISTRO' para comenzar.</p>
+            <p style="font-weight: 700; font-size: 15px; margin-bottom: 4px;">No se encontraron registros</p>
+            <p style="font-size: 13px;">${currentSearchQuery ? 'Prueba con otra búsqueda o filtro.' : "Presiona 'NUEVO REGISTRO' para comenzar."}</p>
           </div>
         `;
         return;
       }
 
-      listContainer.innerHTML = records.map(r => {
+      listContainer.innerHTML = filtered.map(r => {
         let badgeClass = 'mov-entrada';
         if (r.tipoMovimiento === 'Salida') badgeClass = 'mov-salida';
         if (r.tipoMovimiento === 'Retorno a CEDIS') badgeClass = 'mov-retorno';
@@ -1029,11 +1398,19 @@
               <span class="record-folio">${r.folio}</span>
               <span class="badge-mov ${badgeClass}">${r.tipoMovimiento}</span>
             </div>
-            <div class="record-date">${formattedDate}</div>
+            
+            <div class="record-date-row">
+              <span>📅 ${formattedDate}</span>
+              <span>👤 ${r.operador ? r.operador : 'Sin chofer'}</span>
+            </div>
+
             <div class="record-chips">
               <div class="chip-info">Económico: <strong>${r.economico || 'S/N'}</strong></div>
               <div class="chip-info">Placa: <strong>${r.placa || 'S/N'}</strong></div>
+              ${r.numeroCarga ? `<div class="chip-info">Carga: <strong>${r.numeroCarga}</strong></div>` : ''}
+              ${r.destino ? `<div class="chip-info">Destino: <strong>${r.destino}</strong></div>` : ''}
             </div>
+
             <div class="structures-pills">
               ${r.abatibles ? `<span class="pill-st">Abatibles: ${r.abatibles}</span>` : ''}
               ${r.normales ? `<span class="pill-st">Normales: ${r.normales}</span>` : ''}
@@ -1041,34 +1418,107 @@
               ${r.atvAbatible ? `<span class="pill-st">ATV Abat: ${r.atvAbatible}</span>` : ''}
               ${r.cartonMadera ? `<span class="pill-st">Cart/Mad: ${r.cartonMadera}</span>` : ''}
             </div>
+
             <div class="record-footer">
-              <span style="font-size: 12px; color: #4B5563;">${r.destino || 'Destino no esp.'}</span>
               <span class="total-highlight">TOTAL: ${r.totalEstructuras}</span>
+              <div class="record-actions-btns">
+                <button class="btn-card-action pdf" onclick="exportSingleValePdf('${r.id}')" title="Descargar Vale en PDF">
+                  📄 PDF
+                </button>
+                <button class="btn-card-action wa" onclick="shareValeWhatsApp('${r.id}')" title="Compartir por WhatsApp">
+                  💬
+                </button>
+                <button class="btn-card-action edit" onclick="openCaptureScreen('${r.id}')" title="Editar Vale">
+                  ✏️
+                </button>
+                <button class="btn-card-action del" onclick="deleteRecord('${r.id}')" title="Eliminar Vale">
+                  🗑️
+                </button>
+              </div>
             </div>
           </div>
         `;
       }).join('');
     }
 
-    function openCaptureScreen() {
-      const d = new Date();
-      const folioCode = `VAL-${d.getFullYear().toString().substr(-2)}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}-${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}`;
-      document.getElementById('currentFolio').textContent = folioCode;
+    function setFilterMovimiento(mov, btn) {
+      currentFilterMovimiento = mov;
+      document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderRecords();
+    }
 
-      document.getElementById('inputEconomico').value = '';
-      document.getElementById('inputPlaca').value = '';
-      document.getElementById('inputCarga').value = '';
-      document.getElementById('inputDestino').value = '';
-      document.getElementById('inputOperador').value = '';
-      
-      Object.keys(counts).forEach(k => counts[k] = 0);
+    function handleSearchInput(val) {
+      currentSearchQuery = val.trim().toLowerCase();
+      renderRecords();
+    }
+
+    // ============================================
+    // CAPTURA Y EDICIÓN DE REGISTROS
+    // ============================================
+    function openCaptureScreen(recordId = null) {
+      editingRecordId = recordId;
+      const isEditing = Boolean(recordId);
+
+      if (isEditing) {
+        const records = getStoredRecords();
+        const r = records.find(item => item.id === recordId);
+        if (!r) return;
+
+        document.getElementById('currentFolio').textContent = r.folio;
+        document.getElementById('inputEconomico').value = r.economico || '';
+        document.getElementById('inputPlaca').value = r.placa || '';
+        document.getElementById('inputCarga').value = r.numeroCarga || '';
+        document.getElementById('inputDestino').value = r.destino || '';
+        document.getElementById('inputOperador').value = r.operador || '';
+
+        currentMovimiento = r.tipoMovimiento || 'Entrada Contenedor';
+        document.querySelectorAll('.segment-btn').forEach(b => {
+          if (b.textContent.includes('Entrada') && currentMovimiento.includes('Entrada')) b.classList.add('active');
+          else if (b.textContent.includes('Salida') && currentMovimiento === 'Salida') b.classList.add('active');
+          else if (b.textContent.includes('Retorno') && currentMovimiento.includes('Retorno')) b.classList.add('active');
+          else b.classList.remove('active');
+        });
+
+        counts.abatibles = r.abatibles || 0;
+        counts.normales = r.normales || 0;
+        counts.atvNormal = r.atvNormal || 0;
+        counts.atvAbatible = r.atvAbatible || 0;
+        counts.cartonMadera = r.cartonMadera || 0;
+
+        document.getElementById('btnSaveRecord').textContent = '✓ Guardar Cambios';
+      } else {
+        const d = new Date();
+        const folioCode = `VAL-${d.getFullYear().toString().slice(-2)}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}-${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}${String(d.getSeconds()).padStart(2,'0')}`;
+        document.getElementById('currentFolio').textContent = folioCode;
+
+        document.getElementById('inputEconomico').value = '';
+        document.getElementById('inputPlaca').value = '';
+        document.getElementById('inputCarga').value = '';
+        document.getElementById('inputDestino').value = '';
+        document.getElementById('inputOperador').value = '';
+
+        Object.keys(counts).forEach(k => counts[k] = 0);
+        document.getElementById('btnSaveRecord').textContent = '✓ Guardar Registro';
+      }
+
       updateAllCountsUI();
-
       document.getElementById('screenHome').classList.remove('active');
       document.getElementById('screenCapture').classList.add('active');
     }
 
     function closeCaptureScreen() {
+      const economico = document.getElementById('inputEconomico').value.trim();
+      const placa = document.getElementById('inputPlaca').value.trim();
+      const total = Object.values(counts).reduce((a,b) => a + b, 0);
+
+      if ((economico || placa || total > 0) && !editingRecordId) {
+        if (!confirm('¿Deseas salir? La información de este vale aún no ha sido guardada.')) {
+          return;
+        }
+      }
+
+      editingRecordId = null;
       document.getElementById('screenCapture').classList.remove('active');
       document.getElementById('screenHome').classList.add('active');
       renderRecords();
@@ -1082,16 +1532,28 @@
 
     function updateCount(key, delta) {
       counts[key] = Math.max(0, counts[key] + delta);
-      document.getElementById('val_' + key).textContent = counts[key];
+      const inputEl = document.getElementById('val_' + key);
+      if (inputEl) inputEl.value = counts[key];
       const card = document.getElementById('card_' + key);
       if (counts[key] > 0) card.classList.add('has-value');
       else card.classList.remove('has-value');
       recalcTotal();
     }
 
+    function setManualCount(key, val) {
+      let num = parseInt(val, 10);
+      if (isNaN(num) || num < 0) num = 0;
+      counts[key] = num;
+      const card = document.getElementById('card_' + key);
+      if (num > 0) card.classList.add('has-value');
+      else card.classList.remove('has-value');
+      recalcTotal();
+    }
+
     function updateAllCountsUI() {
       Object.keys(counts).forEach(k => {
-        document.getElementById('val_' + k).textContent = counts[k];
+        const inputEl = document.getElementById('val_' + k);
+        if (inputEl) inputEl.value = counts[k];
         const card = document.getElementById('card_' + k);
         if (counts[k] > 0) card.classList.add('has-value');
         else card.classList.remove('has-value');
@@ -1104,17 +1566,425 @@
       document.getElementById('bottomTotalVal').textContent = total;
     }
 
-    // ============================================
-    // ESCÁNER DE CÓDIGO DE BARRAS INTELIGENTE
-    // ============================================
+    function saveCurrentRecord() {
+      const economico = document.getElementById('inputEconomico').value.trim();
+      const placa = document.getElementById('inputPlaca').value.trim();
+      const total = Object.values(counts).reduce((a,b) => a + b, 0);
 
-    // Procesa el texto del código de barras (ej. Code-128 con "ECO: 3114 PLACA: A726AF" o "Economico: 3114")
+      if (!economico && !placa) {
+        alert('Por favor ingresa o escanea el Económico o la Placa de la unidad.');
+        return;
+      }
+
+      if (total === 0) {
+        if (!confirm('⚠️ El conteo de estructuras está en 0.\n\n¿Estás seguro de que deseas guardar este vale sin estructuras?')) {
+          return;
+        }
+      }
+
+      const records = getStoredRecords();
+
+      if (editingRecordId) {
+        const idx = records.findIndex(r => r.id === editingRecordId);
+        if (idx !== -1) {
+          records[idx] = {
+            ...records[idx],
+            tipoMovimiento: currentMovimiento,
+            economico: economico,
+            placa: placa,
+            numeroCarga: document.getElementById('inputCarga').value.trim(),
+            destino: document.getElementById('inputDestino').value.trim(),
+            operador: document.getElementById('inputOperador').value.trim(),
+            abatibles: counts.abatibles,
+            normales: counts.normales,
+            atvNormal: counts.atvNormal,
+            atvAbatible: counts.atvAbatible,
+            cartonMadera: counts.cartonMadera,
+            totalEstructuras: total,
+            fechaModificacion: new Date().toISOString()
+          };
+          saveRecordsToStorage(records);
+          showToast(`✓ Vale ${records[idx].folio} actualizado`);
+          editingRecordId = null;
+          document.getElementById('screenCapture').classList.remove('active');
+          document.getElementById('screenHome').classList.add('active');
+          renderRecords();
+          return;
+        }
+      }
+
+      const newRecord = {
+        id: Date.now().toString(),
+        folio: document.getElementById('currentFolio').textContent,
+        fechaHora: new Date().toISOString(),
+        tipoMovimiento: currentMovimiento,
+        economico: economico,
+        placa: placa,
+        numeroCarga: document.getElementById('inputCarga').value.trim(),
+        destino: document.getElementById('inputDestino').value.trim(),
+        operador: document.getElementById('inputOperador').value.trim(),
+        abatibles: counts.abatibles,
+        normales: counts.normales,
+        atvNormal: counts.atvNormal,
+        atvAbatible: counts.atvAbatible,
+        cartonMadera: counts.cartonMadera,
+        totalEstructuras: total
+      };
+
+      records.unshift(newRecord);
+      saveRecordsToStorage(records);
+
+      showToast(`✓ Vale ${newRecord.folio} guardado con éxito`);
+      document.getElementById('screenCapture').classList.remove('active');
+      document.getElementById('screenHome').classList.add('active');
+      renderRecords();
+    }
+
+    function deleteRecord(recordId) {
+      const records = getStoredRecords();
+      const r = records.find(item => item.id === recordId);
+      if (!r) return;
+
+      if (confirm(`¿Estás seguro de que deseas eliminar el vale ${r.folio}?\n(Esta acción no se puede deshacer)`)) {
+        const updated = records.filter(item => item.id !== recordId);
+        saveRecordsToStorage(updated);
+        showToast(`✓ Vale ${r.folio} eliminado`);
+        renderRecords();
+      }
+    }
+
+    function clearAllRecordsConfirm() {
+      const records = getStoredRecords();
+      if (records.length === 0) {
+        showToast('El historial ya está vacío.');
+        return;
+      }
+      if (confirm(`⚠️ ¿Deseas vaciar todo el historial?\n\nSe eliminarán los ${records.length} vales guardados. Te sugerimos exportar en PDF antes.`)) {
+        saveRecordsToStorage([]);
+        showToast('✓ Historial vaciado');
+        renderRecords();
+      }
+    }
+
+    // ============================================
+    // EXPORTACIÓN A PDF Y EXCEL / CSV
+    // ============================================
+    function exportAllToPdf() {
+      const records = getStoredRecords();
+      if (records.length === 0) {
+        showToast('⚠️ No hay vales registrados para exportar');
+        return;
+      }
+
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        alert('Cargando librería de PDF... Por favor intenta en 3 segundos.');
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF('l', 'pt', 'letter'); // Horizontal para tabla completa
+
+      // Encabezado Azul Italika
+      doc.setFillColor(0, 56, 147);
+      doc.rect(0, 0, 792, 60, 'F');
+
+      // Franja Roja Italika
+      doc.setFillColor(229, 9, 20);
+      doc.rect(0, 60, 792, 4, 'F');
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text('ITALIKA • CONTROL Y VALIDACIÓN DE ESTRUCTURAS', 30, 36);
+
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text('REPORTE GENERAL DE MOVIMIENTOS', 30, 50);
+      doc.text('Generado: ' + new Date().toLocaleString(), 580, 50);
+
+      let totalEst = 0, totalAbat = 0, totalNorm = 0, totalAtvN = 0, totalAtvA = 0, totalCart = 0;
+      records.forEach(r => {
+        totalEst += (r.totalEstructuras || 0);
+        totalAbat += (r.abatibles || 0);
+        totalNorm += (r.normales || 0);
+        totalAtvN += (r.atvNormal || 0);
+        totalAtvA += (r.atvAbatible || 0);
+        totalCart += (r.cartonMadera || 0);
+      });
+
+      const headers = [['Folio', 'Fecha y Hora', 'Movimiento', 'Económico', 'Placa', 'Carga', 'Destino', 'Operador', 'Abat.', 'Norm.', 'ATV N', 'ATV A', 'C/M', 'Total']];
+
+      const data = records.map(r => [
+        r.folio,
+        new Date(r.fechaHora).toLocaleDateString() + ' ' + new Date(r.fechaHora).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+        r.tipoMovimiento,
+        r.economico || '-',
+        r.placa || '-',
+        r.numeroCarga || '-',
+        r.destino || '-',
+        r.operador || '-',
+        r.abatibles || 0,
+        r.normales || 0,
+        r.atvNormal || 0,
+        r.atvAbatible || 0,
+        r.cartonMadera || 0,
+        r.totalEstructuras || 0
+      ]);
+
+      doc.autoTable({
+        head: headers,
+        body: data,
+        startY: 80,
+        theme: 'grid',
+        styles: { fontSize: 8, cellPadding: 4, halign: 'center' },
+        headStyles: { fillColor: [0, 56, 147], textColor: 255, fontStyle: 'bold' },
+        columnStyles: {
+          0: { cellWidth: 80, fontStyle: 'bold' },
+          1: { cellWidth: 70 },
+          6: { cellWidth: 70 },
+          7: { cellWidth: 75 },
+          13: { fontStyle: 'bold', textColor: [0, 56, 147] }
+        },
+        foot: [['TOTALES', '', '', '', '', '', '', `${records.length} Vales`, totalAbat, totalNorm, totalAtvN, totalAtvA, totalCart, totalEst]],
+        footStyles: { fillColor: [241, 245, 249], textColor: [0, 56, 147], fontStyle: 'bold', fontSize: 9 }
+      });
+
+      doc.save(`Italika_Reporte_Estructuras_${new Date().toISOString().slice(0,10)}.pdf`);
+      showToast('✓ Reporte general PDF generado con éxito');
+    }
+
+    function exportSingleValePdf(recordId) {
+      const records = getStoredRecords();
+      const r = records.find(item => item.id === recordId);
+      if (!r) return;
+
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        alert('Cargando librería de PDF... Por favor intenta en 3 segundos.');
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF('p', 'pt', 'letter');
+
+      // Encabezado Azul Italika
+      doc.setFillColor(0, 56, 147);
+      doc.rect(0, 0, 612, 65, 'F');
+
+      // Franja Roja Italika
+      doc.setFillColor(229, 9, 20);
+      doc.rect(0, 65, 612, 4, 'F');
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(22);
+      doc.setFont('helvetica', 'bold');
+      doc.text('ITALIKA', 40, 42);
+
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.text('VALE DE CONTROL DE ESTRUCTURAS', 150, 40);
+
+      doc.setFontSize(9);
+      doc.text('FOLIO: ' + r.folio, 440, 40);
+
+      // Recuadro de información de la unidad
+      doc.setTextColor(30, 41, 59);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text('DATOS DE LA UNIDAD Y TRANSPORTE', 40, 95);
+
+      doc.setDrawColor(226, 232, 240);
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(40, 105, 532, 95, 6, 6, 'FD');
+
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+
+      // Columna 1
+      doc.text('Tipo de Movimiento:', 55, 125);
+      doc.setFont('helvetica', 'bold');
+      doc.text(r.tipoMovimiento || 'N/A', 160, 125);
+
+      doc.setFont('helvetica', 'normal');
+      doc.text('Fecha y Hora:', 55, 145);
+      doc.setFont('helvetica', 'bold');
+      doc.text(new Date(r.fechaHora).toLocaleString(), 160, 145);
+
+      doc.setFont('helvetica', 'normal');
+      doc.text('Número de Carga:', 55, 165);
+      doc.setFont('helvetica', 'bold');
+      doc.text(r.numeroCarga || 'S/N', 160, 165);
+
+      doc.setFont('helvetica', 'normal');
+      doc.text('Destino / Tienda:', 55, 185);
+      doc.setFont('helvetica', 'bold');
+      doc.text(r.destino || 'Sin especificar', 160, 185);
+
+      // Columna 2
+      doc.setFont('helvetica', 'normal');
+      doc.text('Económico de Unidad:', 330, 125);
+      doc.setFont('helvetica', 'bold');
+      doc.text(r.economico || 'S/N', 450, 125);
+
+      doc.setFont('helvetica', 'normal');
+      doc.text('Placa de Unidad:', 330, 145);
+      doc.setFont('helvetica', 'bold');
+      doc.text(r.placa || 'S/N', 450, 145);
+
+      doc.setFont('helvetica', 'normal');
+      doc.text('Operador / Conductor:', 330, 165);
+      doc.setFont('helvetica', 'bold');
+      doc.text(r.operador || 'Sin nombre', 450, 165);
+
+      // Tabla de Desglose de Estructuras
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text('DESGLOSE DE ESTRUCTURAS', 40, 225);
+
+      const estTable = [
+        ['1', 'Estructura Abatible', 'Abatible Estándar', String(r.abatibles || 0)],
+        ['2', 'Estructura Normal', 'EMP-1870MM Estándar', String(r.normales || 0)],
+        ['3', 'Estructura ATV Normal', 'Cuatrimoto Normal', String(r.atvNormal || 0)],
+        ['4', 'Estructura ATV Abatible', 'Cuatrimoto Abatible', String(r.atvAbatible || 0)],
+        ['5', 'Cartón / Madera', 'Embalaje y tarimas complementarias', String(r.cartonMadera || 0)]
+      ];
+
+      doc.autoTable({
+        startY: 235,
+        head: [['#', 'Tipo de Estructura', 'Descripción / Subtipo', 'Cantidad']],
+        body: estTable,
+        theme: 'grid',
+        margin: { left: 40, right: 40 },
+        headStyles: { fillColor: [0, 56, 147], textColor: 255, fontStyle: 'bold', fontSize: 10 },
+        bodyStyles: { fontSize: 9, cellPadding: 6 },
+        columnStyles: {
+          0: { cellWidth: 30, halign: 'center' },
+          1: { cellWidth: 160, fontStyle: 'bold' },
+          2: { cellWidth: 242 },
+          3: { cellWidth: 100, halign: 'center', fontStyle: 'bold', fontSize: 11, textColor: [0, 56, 147] }
+        },
+        foot: [['', '', 'TOTAL GENERAL DE ESTRUCTURAS:', String(r.totalEstructuras || 0)]],
+        footStyles: { fillColor: [241, 245, 249], textColor: [0, 56, 147], fontStyle: 'bold', fontSize: 12, halign: 'center' }
+      });
+
+      // Firmas de conformidad
+      const finalY = doc.lastAutoTable.finalY + 80;
+
+      doc.setDrawColor(148, 163, 184);
+      doc.line(70, finalY, 250, finalY);
+      doc.line(360, finalY, 540, finalY);
+
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(71, 85, 105);
+      doc.text('ENTREGÓ CONFORME (OPERADOR)', 80, finalY + 16);
+      doc.text('RECIBIÓ CONFORME (ALMACÉN / SEGURIDAD)', 360, finalY + 16);
+
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(148, 163, 184);
+      doc.text('Firma y Nombre del Conductor', 100, finalY + 28);
+      doc.text('Sello y Firma del Receptor', 395, finalY + 28);
+
+      // Pie de página
+      doc.text('Documento oficial generado por App ITALIKA Validación de Estructuras • ' + r.folio, 40, 750);
+
+      doc.save(`Vale_${r.folio}.pdf`);
+      showToast(`✓ Vale ${r.folio} descargado en PDF`);
+    }
+
+    function shareValeWhatsApp(recordId) {
+      const records = getStoredRecords();
+      const r = records.find(item => item.id === recordId);
+      if (!r) return;
+
+      const text = `🏍️ *ITALIKA - VALE DE ESTRUCTURAS*
+📋 *Folio:* ${r.folio}
+🔄 *Movimiento:* ${r.tipoMovimiento}
+📅 *Fecha:* ${new Date(r.fechaHora).toLocaleString()}
+🚛 *Económico:* ${r.economico || 'S/N'} | *Placa:* ${r.placa || 'S/N'}
+📦 *# Carga:* ${r.numeroCarga || 'S/N'}
+📍 *Destino:* ${r.destino || 'Sin especificar'}
+👤 *Operador:* ${r.operador || 'Sin especificar'}
+
+📊 *DETALLE DE ESTRUCTURAS:*
+• Abatibles: ${r.abatibles || 0}
+• Normales: ${r.normales || 0}
+• ATV Normal: ${r.atvNormal || 0}
+• ATV Abatible: ${r.atvAbatible || 0}
+• Cartón/Madera: ${r.cartonMadera || 0}
+━━━━━━━━━━━━━━━━━━
+🔢 *TOTAL ESTRUCTURAS: ${r.totalEstructuras || 0}*`;
+
+      const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+      window.open(url, '_blank');
+    }
+
+    function exportAllToExcel() {
+      const records = getStoredRecords();
+      if (records.length === 0) {
+        showToast('⚠️ No hay vales registrados para exportar');
+        return;
+      }
+
+      const headers = [
+        'Folio',
+        'Fecha',
+        'Hora',
+        'Tipo Movimiento',
+        'Economico',
+        'Placa',
+        'Numero Carga',
+        'Destino',
+        'Operador',
+        'Abatibles',
+        'Normales',
+        'ATV Normal',
+        'ATV Abatible',
+        'Carton Madera',
+        'Total Estructuras'
+      ];
+
+      const rows = records.map(r => {
+        const d = new Date(r.fechaHora);
+        return [
+          `"${r.folio}"`,
+          `"${d.toLocaleDateString()}"`,
+          `"${d.toLocaleTimeString()}"`,
+          `"${r.tipoMovimiento || ''}"`,
+          `"${r.economico || ''}"`,
+          `"${r.placa || ''}"`,
+          `"${r.numeroCarga || ''}"`,
+          `"${r.destino || ''}"`,
+          `"${r.operador || ''}"`,
+          r.abatibles || 0,
+          r.normales || 0,
+          r.atvNormal || 0,
+          r.atvAbatible || 0,
+          r.cartonMadera || 0,
+          r.totalEstructuras || 0
+        ].join(',');
+      });
+
+      const csvContent = '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Italika_Estructuras_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('✓ Archivo Excel (CSV) descargado');
+    }
+
+    // ============================================
+    // ESCÁNER DE CÓDIGO DE BARRAS OPTIMIZADO
+    // ============================================
     function processScannedBarcode(rawText) {
       if (!rawText) return;
       const text = rawText.trim();
       console.log('Código detectado:', text);
 
-      // Vibración de confirmación si el celular lo soporta
       if (navigator.vibrate) {
         try { navigator.vibrate([80, 50, 80]); } catch(e) {}
       }
@@ -1122,21 +1992,15 @@
       let detectedEcon = null;
       let detectedPlaca = null;
 
-      // 1. Regex inteligente para Económico:
-      // Soporta: 'ECO: 3114', 'ECO 3114', 'ECO. 3114', 'ECONOMICO: 3114', 'ECONÓMICO: 3114', 'UNIDAD: 3114'
+      // 1. Regex inteligente para Económico
       const econMatch = text.match(/(?:eco(?:n[oó]mico)?|unidad)\s*[:.\-=\s]\s*([A-Za-z0-9]+)/i);
-      if (econMatch) {
-        detectedEcon = econMatch[1].trim();
-      }
+      if (econMatch) detectedEcon = econMatch[1].trim();
 
-      // 2. Regex inteligente para Placa:
-      // Soporta: 'PLACA: A726AF', 'PLACAS: A726AF', 'PLACA A726AF', 'PLACA=A726AF'
+      // 2. Regex inteligente para Placa
       const placaMatch = text.match(/placas?\s*[:.\-=\s]\s*([A-Za-z0-9]+)/i);
-      if (placaMatch) {
-        detectedPlaca = placaMatch[1].trim();
-      }
+      if (placaMatch) detectedPlaca = placaMatch[1].trim();
 
-      // 3. Si no trae prefijos explícitos (ej. '3114-A726AF' o '3114 / A726AF' o '3114 A726AF')
+      // 3. Formato plano con separadores (ej. 3114-A726AF)
       if (!detectedEcon && !detectedPlaca) {
         const parts = text.split(/[\/\-_,\s|]+/);
         if (parts.length >= 2) {
@@ -1145,7 +2009,6 @@
         }
       }
 
-      // 4. Si se encontró Económico o Placa, llenar los campos correspondientes
       if (detectedEcon || detectedPlaca) {
         let mensajes = [];
         if (detectedEcon) {
@@ -1163,14 +2026,13 @@
         return;
       }
 
-      // 5. Si es un valor único plano (ej. sólo '3114' o 'A726AF')
+      // 4. Si es valor único plano
       if (currentTargetInputId && currentTargetInputId !== 'both') {
         const cleaned = text.replace(/^(?:eco(?:n[oó]mico)?|placas?|unidad)\s*[:.\-=\s]*/i, '');
         const target = document.getElementById(currentTargetInputId);
         if (target) target.value = cleaned;
         showToast('✓ Código capturado: ' + cleaned);
       } else {
-        // Modo 'both': asignar a Económico si es numérico, sino a Placa
         if (/^\d+$/.test(text)) {
           const inputE = document.getElementById('inputEconomico');
           if (inputE) inputE.value = text;
@@ -1192,88 +2054,109 @@
       document.getElementById('scannerStatusText').textContent = 'Iniciando cámara HD... Enfoca el código';
 
       isScanningActive = true;
+      isTorchOn = false;
 
-      // 1. Iniciar Quagga2 (motor líder para Code-128, Code-39 y EAN)
-      if (window.Quagga) {
-        Quagga.init({
-          inputStream: {
-            name: "Live",
-            type: "LiveStream",
-            target: document.querySelector('#scannerViewport'),
-            constraints: {
-              facingMode: "environment",
-              width: { min: 1280, ideal: 1920 },
-              height: { min: 720, ideal: 1080 }
-            }
-          },
-          locator: {
-            patchSize: "medium",
-            halfSample: true
-          },
-          numOfWorkers: 2,
-          decoder: {
-            readers: [
-              "code_128_reader",
-              "code_39_reader",
-              "ean_reader"
-            ]
-          },
-          locate: true
-        }, function(err) {
-          if (err) {
-            console.warn('Quagga no pudo inicializar el video, pasando a fallback:', err);
-            startFallbackZXing();
-            return;
-          }
-          Quagga.start();
-          quaggaRunning = true;
-          document.getElementById('scannerStatusText').textContent = 'Alinea el código dentro del recuadro verde';
+      const flashBtn = document.getElementById('btnScannerTorch');
+      if (flashBtn) {
+        flashBtn.style.display = 'none';
+        flashBtn.style.background = 'rgba(255,255,255,0.15)';
+        flashBtn.style.color = '#fff';
+        flashBtn.textContent = '🔦 Flash';
+      }
 
-          // Motor concurrente por hardware (BarcodeDetector) para QR y lectura instantánea
-          runHardwareDetectorLoop();
-        });
+      try {
+        const constraints = {
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+          },
+          audio: false
+        };
 
-        Quagga.onDetected(onBarcodeDetected);
-      } else {
+        currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+
+        let video = document.querySelector('#scannerViewport video');
+        if (!video) {
+          video = document.createElement('video');
+          video.setAttribute('playsinline', '');
+          video.setAttribute('autoplay', '');
+          video.setAttribute('muted', '');
+          document.querySelector('#scannerViewport').prepend(video);
+        }
+        video.srcObject = currentStream;
+        await video.play();
+
+        // Soporte de Linterna / Flash
+        const track = currentStream.getVideoTracks()[0];
+        if (track && track.getCapabilities && track.getCapabilities().torch) {
+          torchSupported = true;
+          if (flashBtn) flashBtn.style.display = 'inline-flex';
+        }
+
+        document.getElementById('scannerStatusText').textContent = 'Alinea el código dentro del recuadro verde';
+
+        // Motor BarcodeDetector de hardware o ZXing
+        runBarcodeDetectionLoop(video);
+
+      } catch (err) {
+        console.warn('Error al iniciar cámara nativa, intentando fallback ZXing:', err);
         startFallbackZXing();
       }
     }
 
-    function onBarcodeDetected(result) {
-      if (!isScanningActive) return;
-      if (result && result.codeResult && result.codeResult.code) {
-        isScanningActive = false;
-        processScannedBarcode(result.codeResult.code);
+    async function toggleScannerTorch() {
+      if (!currentStream || !torchSupported) return;
+      const track = currentStream.getVideoTracks()[0];
+      if (!track) return;
+
+      try {
+        isTorchOn = !isTorchOn;
+        await track.applyConstraints({
+          advanced: [{ torch: isTorchOn }]
+        });
+        const flashBtn = document.getElementById('btnScannerTorch');
+        if (flashBtn) {
+          flashBtn.textContent = isTorchOn ? '🔦 Apagar' : '🔦 Flash';
+          flashBtn.style.background = isTorchOn ? '#EAB308' : 'rgba(255,255,255,0.15)';
+          flashBtn.style.color = isTorchOn ? '#000' : '#fff';
+        }
+      } catch (e) {
+        console.error('Error al conmutar linterna:', e);
       }
     }
 
-    function runHardwareDetectorLoop() {
-      if (!('BarcodeDetector' in window)) return;
-      let detector = null;
-      try {
-        detector = new BarcodeDetector({ formats: ['code_128', 'code_39', 'qr_code', 'ean_13'] });
-      } catch (e) {
-        return;
+    function runBarcodeDetectionLoop(video) {
+      if ('BarcodeDetector' in window) {
+        let detector = null;
+        try {
+          detector = new BarcodeDetector({ formats: ['code_128', 'code_39', 'qr_code', 'ean_13'] });
+        } catch (e) {}
+
+        if (detector) {
+          const checkFrame = async () => {
+            if (!isScanningActive) return;
+            if (video && video.readyState >= 2) {
+              try {
+                const barcodes = await detector.detect(video);
+                if (barcodes.length > 0 && isScanningActive) {
+                  isScanningActive = false;
+                  processScannedBarcode(barcodes[0].rawValue);
+                  return;
+                }
+              } catch(e) {}
+            }
+            if (isScanningActive) {
+              requestAnimationFrame(checkFrame);
+            }
+          };
+          requestAnimationFrame(checkFrame);
+          return;
+        }
       }
 
-      const checkFrame = async () => {
-        if (!isScanningActive) return;
-        const video = document.querySelector('#scannerViewport video');
-        if (video && video.readyState >= 2) {
-          try {
-            const barcodes = await detector.detect(video);
-            if (barcodes.length > 0 && isScanningActive) {
-              isScanningActive = false;
-              processScannedBarcode(barcodes[0].rawValue);
-              return;
-            }
-          } catch(e) {}
-        }
-        if (isScanningActive) {
-          requestAnimationFrame(checkFrame);
-        }
-      };
-      requestAnimationFrame(checkFrame);
+      // Si no hay BarcodeDetector, usar ZXing
+      startFallbackZXing();
     }
 
     async function startFallbackZXing() {
@@ -1302,7 +2185,7 @@
             device.label.toLowerCase().includes('trasera') || 
             device.label.toLowerCase().includes('environment')
           );
-          selectedDeviceId = backCam ? backCam.deviceId : videoInputDevices[videoInputDevices.length - 1].deviceId;
+          selectedDeviceId = backCam ? backCam.deviceId : videoInputDevices[0].deviceId;
         }
 
         let video = document.querySelector('#scannerViewport video');
@@ -1328,82 +2211,21 @@
       }
     }
 
-    // Decodificar imagen o foto capturada con la cámara del celular (12MP alta definición)
-    async function handleScanFromFile(input) {
-      if (!input.files || input.files.length === 0) return;
-      const file = input.files[0];
-      const imgUrl = URL.createObjectURL(file);
-      document.getElementById('scannerStatusText').textContent = 'Analizando foto en alta resolución...';
-
-      // 1. Intentar con Quagga.decodeSingle (óptimo para Code-128 en fotografías)
-      if (window.Quagga) {
-        try {
-          Quagga.decodeSingle({
-            src: imgUrl,
-            numOfWorkers: 0,
-            decoder: {
-              readers: ["code_128_reader", "code_39_reader", "ean_reader"]
-            }
-          }, function(res) {
-            if (res && res.codeResult && res.codeResult.code) {
-              processScannedBarcode(res.codeResult.code);
-              return;
-            }
-            fallbackImageScan(imgUrl);
-          });
-          return;
-        } catch (e) {}
-      }
-
-      fallbackImageScan(imgUrl);
-    }
-
-    function fallbackImageScan(imgUrl) {
-      const img = new Image();
-      img.onload = async () => {
-        // BarcodeDetector nativo por hardware
-        if ('BarcodeDetector' in window) {
-          try {
-            const detector = new BarcodeDetector({ formats: ['code_128', 'code_39', 'qr_code', 'ean_13'] });
-            const barcodes = await detector.detect(img);
-            if (barcodes.length > 0) {
-              processScannedBarcode(barcodes[0].rawValue);
-              return;
-            }
-          } catch (e) {}
-        }
-
-        // Fallback ZXing Reader con TRY_HARDER
-        if (window.ZXing) {
-          try {
-            const hints = new Map();
-            hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.CODE_39, ZXing.BarcodeFormat.QR_CODE]);
-            hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-            const reader = new ZXing.BrowserMultiFormatReader(hints);
-            const res = await reader.decodeFromImageElement(img);
-            if (res) {
-              processScannedBarcode(res.getText());
-              return;
-            }
-          } catch (e) {}
-        }
-
-        alert('No se detectó el código en la foto. Tip: Puedes usar el botón "⚡ ECO: 3114 | PLACA: A726AF" para ingresarlo al instante.');
-        document.getElementById('scannerStatusText').textContent = 'Alinea el código dentro del recuadro verde';
-      };
-      img.src = imgUrl;
-    }
-
     function stopScanner() {
       isScanningActive = false;
       document.getElementById('modalScanner').classList.remove('active');
 
-      if (quaggaRunning && window.Quagga) {
+      if (isTorchOn && currentStream) {
         try {
-          Quagga.stop();
-          Quagga.offDetected(onBarcodeDetected);
-        } catch (e) {}
-        quaggaRunning = false;
+          const track = currentStream.getVideoTracks()[0];
+          if (track) track.applyConstraints({ advanced: [{ torch: false }] });
+        } catch(e) {}
+      }
+      isTorchOn = false;
+
+      if (currentStream) {
+        currentStream.getTracks().forEach(t => t.stop());
+        currentStream = null;
       }
 
       if (codeReader) {
@@ -1419,42 +2241,6 @@
         }
         v.remove();
       });
-    }
-
-    function saveCurrentRecord() {
-      const economico = document.getElementById('inputEconomico').value.trim();
-      const placa = document.getElementById('inputPlaca').value.trim();
-      const total = Object.values(counts).reduce((a,b) => a + b, 0);
-
-      if (!economico && !placa) {
-        alert('Por favor ingresa o escanea el Económico o la Placa de la unidad.');
-        return;
-      }
-
-      const newRecord = {
-        id: Date.now().toString(),
-        folio: document.getElementById('currentFolio').textContent,
-        fechaHora: new Date().toISOString(),
-        tipoMovimiento: currentMovimiento,
-        economico: economico,
-        placa: placa,
-        numeroCarga: document.getElementById('inputCarga').value.trim(),
-        destino: document.getElementById('inputDestino').value.trim(),
-        operador: document.getElementById('inputOperador').value.trim(),
-        abatibles: counts.abatibles,
-        normales: counts.normales,
-        atvNormal: counts.atvNormal,
-        atvAbatible: counts.atvAbatible,
-        cartonMadera: counts.cartonMadera,
-        totalEstructuras: total
-      };
-
-      const records = getStoredRecords();
-      records.unshift(newRecord);
-      saveRecordsToStorage(records);
-
-      showToast(`✓ Vale ${newRecord.folio} guardado`);
-      closeCaptureScreen();
     }
 
     // ============================================
@@ -1506,9 +2292,8 @@
     // ============================================
     // SISTEMA DE AUTO-ACTUALIZACIÓN AUTOMÁTICA
     // ============================================
-    const CURRENT_APP_VERSION = "2026.09.23.01";
+    const CURRENT_APP_VERSION = "2026.10.05.01";
 
-    // Forzar actualización inmediata y limpiar caché manualmente
     async function forceAppRefresh() {
       showToast('🔄 Verificando y actualizando app...');
       try {
@@ -1531,14 +2316,13 @@
       }, 500);
     }
 
-    // Verificar si hay nueva versión publicada en GitHub
     async function checkForAppUpdates() {
       try {
         const response = await fetch('./version.json?nocache=' + Date.now(), { cache: 'no-store' });
         if (response.ok) {
           const data = await response.json();
           const storedVersion = localStorage.getItem('italika_app_version');
-          
+
           const badge = document.getElementById('appVersionBadge');
           if (badge && data.version) badge.textContent = 'v' + data.version;
 
@@ -1564,15 +2348,11 @@
       }
     }
 
-    // Registrar Service Worker para PWA y actualización en segundo plano
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js?v=' + CURRENT_APP_VERSION, { updateViaCache: 'none' })
           .then((reg) => {
-            console.log('PWA ServiceWorker activo');
             reg.update();
-
-            // Detectar nueva versión lista
             reg.addEventListener('updatefound', () => {
               const newWorker = reg.installing;
               if (newWorker) {
@@ -1598,7 +2378,6 @@
         });
       });
 
-      // Chequeo automático al volver a la app o desbloquear pantalla
       document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {
           checkForAppUpdates();
@@ -1606,14 +2385,12 @@
         }
       });
 
-      // Chequeo periódico cada 45 segundos
       setInterval(() => {
         checkForAppUpdates();
         navigator.serviceWorker.getRegistration().then(reg => { if (reg) reg.update(); });
       }, 45000);
     }
 
-    // Comprobación inicial al arrancar
     checkForAppUpdates();
   </script>
 </body>

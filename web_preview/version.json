@@ -1,6 +1,6 @@
 {
-  "version": "2026.09.23.01",
-  "buildTime": 1727092800,
-  "updatedAt": "2026-09-23T10:15:00-06:00",
-  "description": "Limpieza de botones de prueba en escáner y auto-actualización automática"
+  "version": "2026.10.05.01",
+  "buildTime": 1728115800,
+  "updatedAt": "2026-10-05T08:15:00-06:00",
+  "description": "Exportación PDF y Excel, edición y borrado de vales, buscador, linterna en escáner y teclado numérico directo"
 }
