@@ -1,6 +1,6 @@
 {
-  "version": "2026.10.05.01",
-  "buildTime": 1728115800,
-  "updatedAt": "2026-10-05T08:15:00-06:00",
-  "description": "Exportación PDF y Excel, edición y borrado de vales, buscador, linterna en escáner y teclado numérico directo"
+  "version": "2026.10.05.02",
+  "buildTime": 1728116500,
+  "updatedAt": "2026-10-05T08:20:00-06:00",
+  "description": "Rediseño visual Enterprise Italika PRO, Glassmorphism, compatibilidad total iPhone/Android y HUD escáner"
 }

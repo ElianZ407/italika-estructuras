@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v2026.10.05.01';
+const CACHE_VERSION = 'v2026.10.05.02';
 const CACHE_NAME = 'italika-estructuras-' + CACHE_VERSION;
 const ASSETS_TO_CACHE = [
   './manifest.json',
